@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generador de horarios</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Pacifico', sans-serif;
+    }
+
+    .img-fixed-size {
+      width: 5cm;
+      height: 6cm;
+      object-fit: cover;
+    }
+
+    .w-12 {
+      width: 12% !important;
+    }
+
+    .img-top-left {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+    }
+
+    .img-top-right {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .modal-animado .modal-dialog {
+      animation: slideInDown 0.5s ease-out;
+    }
+
+    @keyframes slideInDown {
+      from {
+        transform: translateY(-200px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .btn-hover {
+      transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+    }
+
+    .btn-hover:hover {
+      background-color: #0056b3;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transform: scale(1.05);
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <!--img-fluid: La imagen se adapta al ancho del contenedor y mantiene su proporción.-->
+  <img src="Index/logoITZ.png" class="img-fluid w-12 img-top-left" alt="Logo Izquierdo">
+  <img src="Index/cenidet.png" class="img-fluid w-25 img-top-right" alt="Logo Derecho">
+
+  <div class="container d-flex justify-content-center align-items-center text-center" style="height: 100vh;">
+    <div>
+      <h1>BIENVENIDOS</h1>
+      <p>Asignación de materias a profesores utilizando programación lógica de restricciones</p>
+
+      <!-- Botón Ingresar -->
+      <a href="dashboard.html" class="btn btn btn-outline-success btn-lg m-2">Ingresar</a>
+
+      <!-- Botón Acerca de -->
+      <button class="btn btn btn-outline-info btn-lg m-2" data-bs-toggle="modal" data-bs-target="#modalAcercaDe">
+        Acerca de
+      </button>
+
+
+    </div>
+  </div>
+  <!-- Modal Acerca de -->
+  <div class="modal fade modal-animado" id="modalAcercaDe" tabindex="-1" aria-labelledby="modalAcercaDeLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalAcercaDeLabel">Acerca de este proyecto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>Este sistema fue desarrollado para asignar materias a profesores utilizando técnicas de programación lógica
+            de restricciones. Incluye optimización de horarios, carga docente y más.</p>
+
+          <div class="accordion" id="acercaAccordion">
+            <!-- Restricciones -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingRestricciones">
+                <button class="accordion-button btn-hover collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseRestricciones" aria-expanded="false" aria-controls="collapseRestricciones">
+                  Restricciones del sistema
+                </button>
+              </h2>
+              <div id="collapseRestricciones" class="accordion-collapse collapse" aria-labelledby="headingRestricciones"
+                data-bs-parent="#acercaAccordion">
+                <div class="accordion-body">
+                  <!-- Aquí va el contenido de restricciones -->
+                  <ul>
+                    <li>Restricción 1: ...</li>
+                    <li>Restricción 2: ...</li>
+                    <li>Restricción 3: ...</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Autores -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingAutores">
+                <button class="accordion-button btn-hover collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseAutores" aria-expanded="false" aria-controls="collapseAutores">
+                  Autores
+                </button>
+              </h2>
+              <div id="collapseAutores" class="accordion-collapse collapse" aria-labelledby="headingAutores"
+                data-bs-parent="#acercaAccordion">
+                  <!-- Contenido original de autores -->
+                  <div class="card mb-3" style="max-width: 900px;">
+                    <div class="row g-0">
+                      <div class="col-md-4 d-flex align-items-center justify-content-center p-2">
+                        <img src="Index/foto2.jpeg" class="img-fluid rounded border border-3 border-secondary"
+                          alt="Autor 1" style="max-height: 200px; object-fit: cover;">
+                      </div>
+                      <div class="col-md-8">
+                        <div class="card-body py-2 px-3">
+                          <h5 class="card-title mb-1">Ariel Antonio Salazar Barragán</h5>
+                          <h6 class="card-subtitle mb-2 text-muted">Ingeniero en Sistemas Computacionales</h6>
+                          <p class="mb-2">Backend Developer</p>
+                          <ul class="list-group list-group-flush mb-2 small">
+                            <li class="list-group-item px-0 py-1"><i class="bi bi-telephone-fill me-2"></i>747 164 9985
+                            </li>
+                            <li class="list-group-item px-0 py-1"><i
+                                class="bi bi-envelope-fill me-2"></i>salazarbarraganariel@gmail.com</li>
+                            <li class="list-group-item px-0 py-1"><i class="bi bi-geo-alt-fill me-2"></i>Jojutla,
+                              Morelos</li>
+                          </ul>
+                          <div class="px-0">
+                            <a href="docs/CV Ariel.pdf" class="card-link" target="_blank"><i
+                                class="bi bi-file-earmark-person-fill me-1"></i>Descargar CV</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card mb-3" style="max-width: 900px;">
+                    <div class="row g-0">
+                      <div class="col-md-4 d-flex align-items-center justify-content-center p-2">
+                        <img src="Index/foto.jpg" class="img-fluid rounded border border-3 border-secondary"
+                          alt="Autor 2" style="max-height: 200px; object-fit: cover;">
+                      </div>
+                      <div class="col-md-8">
+                        <div class="card-body py-2 px-3">
+                          <h5 class="card-title mb-1">María Guadalupe Hernández Gregorio</h5>
+                          <h6 class="card-subtitle mb-2 text-muted">Ingeniero en Sistemas Computacionales</h6>
+                          <p class="mb-2">Frontend Developer</p>
+                          <ul class="list-group list-group-flush mb-2 small">
+                            <li class="list-group-item px-0 py-1"><i class="bi bi-telephone-fill me-2"></i>747 164 9985
+                            </li>
+                            <li class="list-group-item px-0 py-1"><i
+                                class="bi bi-envelope-fill me-2"></i>mariagudalupehgb@gmail.com</li>
+                            <li class="list-group-item px-0 py-1"><i class="bi bi-geo-alt-fill me-2"></i>Jojutla,
+                              Morelos</li>
+                          </ul>
+                          <div class="px-0">
+                            <a href="docs/CV_Maria.pdf" class="card-link" target="_blank"><i
+                                class="bi bi-file-earmark-person-fill me-1"></i>Descargar CV</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="Index/estilos.css">
+
+  <div class="olas-container">
+    <svg class="olas" viewBox="0 0 1200 120" preserveAspectRatio="none">
+      <path d="M0,50 C150,100 350,0 600,60 C850,120 1050,20 1200,80 L1200,120 L0,120 Z" fill="#0288d1" opacity="0.6">
+      </path>
+      <path d="M0,60 C200,110 400,10 650,70 C900,130 1100,30 1200,90 L1200,120 L0,120 Z" fill="#0288d1" opacity="0.4">
+      </path>
+      <path d="M0,40 C250,90 450,-10 700,50 C950,110 1150,10 1200,70 L1200,120 L0,120 Z" fill="#0288d1" opacity="0.2">
+      </path>
+    </svg>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

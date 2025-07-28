@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="Navbar/navbarStyle.css" />
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <style>
+        #previewJSON {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            #previewJSON {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            #previewJSON {
+                font-size: 0.6rem;
+            }
+        }
+
+        .modal-content {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-content h5 {
+            font-weight: bold;
+        }
+        .bg-azul-personalizado {
+            background-color: #0056b3 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar-expanded d-flex flex-column">
+        <button class="btn btn-toggle m-2 align-self-start" id="toggleMenu">
+            <lord-icon src="https://cdn.lordicon.com/jectmwqf.json" trigger="click" delay="1500" stroke="bold"
+                colors="primary:#9ce5f4,secondary:#4030e8" style="width:30px;height:30px">
+            </lord-icon>
+        </button>
+
+        <ul class="nav nav-pills flex-column mt-2">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa fa-house"></i>
+                    <span class="ms-2 menu-text">Inicio</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="importar.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span class="ms-2 menu-text">Importar Archivos</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="generarHorarios.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-regular fa-calendar-days"></i>
+                    <span class="ms-2 menu-text">Generar Horarios</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesProfesores.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesMaterias.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Materias</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="index.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span class="ms-2 menu-text">Salir</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent">
+        <div class="container content-with-sidebar">
+            <div class="card mb-4">
+                <div class="card-header bg-azul-personalizado text-white text-center">
+                    <h5>Generador de Horarios</h5>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mx-0 my-3">
+                <button class="btn btn-info" id="btnAsignarMaterias">
+                    <i class="fa-solid fa-clipboard-check me-2"></i>
+                    Asignar materias
+                </button>
+                <button id="btnGenerar" class="btn btn-success">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    Generar horarios
+                </button>
+            </div>
+
+            <div class="card mb-4">
+                <h5 class="text-center bold mt-2 mb-0">Selección de periodo</h5>
+                <div class="card-body mt-1 mb-0" id="archivoSelectorContainer"></div>
+            </div>
+
+            <!-- Vista previa asignaturas -->
+            <div class="card mb-4">
+                <div class="card-header bg-azul-personalizado text-white text-center">
+                    <h5>Previsualización de materias disponibles</h5>
+                    <h6 id="totalProfesores">--</h6>
+                </div>
+                <!-- Barra de búsqueda -->
+                <div class="search-bar px-3 pt-3 pb-0">
+                    <div class="input-group w-100">
+                        <input type="text" class="form-control" placeholder="Buscar..." id="searchInput">
+                        <button class="btn btn-outline-primary" type="button" id="btnBuscar">
+                            <lord-icon src="https://cdn.lordicon.com/wjyqkiew.json" trigger="morph" stroke="bold"
+                                state="morph-check" colors="primary:#4030e8,secondary:#9ce5f4"
+                                style="width:30px;height:30px">
+                            </lord-icon>
+                        </button>
+                    </div>
+                </div>
+                <!-- Contenedor de las tarjetas de profesores -->
+                <!-- ID importante: profesorList → usado por JS para renderizar.-->
+                <div class="card-body" id="contenedorAsignaciones">
+                    <div style="max-height: 350px; overflow-y: auto; overflow-x: hidden;">
+                        <div class="row gy-3" id="profesorList">
+                            <!-- Aquí se insertan las tarjetas de profesores -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Generando Horarios -->
+    <div class="modal fade" id="modalGenerando" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4">
+                <div id="iconoEstado" class="mb-3"></div>
+                <h5 id="textoEstado">Generando horarios...</h5>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para editar profesor -->
+    <div class="modal fade" id="modalEditarProfesor" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content p-2">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Edición de tarjeta del profesor</h5>
+                </div>
+                <div class="modal-body">
+                    <!-- Aquí se inyectará la tarjeta -->
+                </div>
+                <div class="modal-footer d-flex justify-content-end">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelar">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btnGuardarCambios">
+                        Guardar cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de éxito que se cierra solo -->
+    <div class="modal fade" id="modalAsignacionExitosa" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4">
+                <div class="mb-3">
+                    <lord-icon src="https://cdn.lordicon.com/lupuorrc.json" trigger="loop" delay="2000"
+                        style="width:80px;height:80px">
+                    </lord-icon>
+                </div>
+                <h5 class="mb-0">¡Materias asignadas correctamente!</h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación para eliminar profesor -->
+    <div class="modal fade" id="modalConfirmarEliminacion" tabindex="-1" aria-labelledby="confirmarEliminarLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="confirmarEliminarLabel">Confirmar eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="mensajeConfirmacion">¿Estás seguro de que deseas eliminar al profesor?</p>
+                </div>
+                <div class="modal-footer justify-content-end">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de notificación -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+        <div id="toastContainer" class="toast align-items-center text-bg-success border-0" role="alert"
+            aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastBody">
+                    <!-- Aquí se inserta el mensaje -->
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Cerrar"></button>
+            </div><li class="nav-item">
+                <a href="CRUD.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="CRUD.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Asignaturas</span>
+                </a>
+            </li>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const seleccionados = Array.from(document.querySelectorAll('input[name="archivos"]:checked'))
+                .map(cb => cb.value);
+
+            console.log("Periodos activos en generarHorarios:", seleccionados);
+        });
+
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnAsignar = document.getElementById('btnAsignarMaterias');
+            const modalElement = document.getElementById('modalAsignacionExitosa');
+            const modalAsignacion = new bootstrap.Modal(modalElement);
+
+            btnAsignar.addEventListener('click', () => {
+                modalAsignacion.show();
+
+                setTimeout(() => {
+                    modalAsignacion.hide();
+                }, 3000);
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="Navbar/estadoSideBar.js"></script>
+    <script src="js/periodosCheckbox.js"></script>
+    <script type="module" src="js/asignar.js"></script>
+    <script type="module" src="js/profAsignados.js"></script>
+    <script type="module" src="js/generarHorario.js"></script>
+    <script type="module" src="js/tarjetaModificar.js"></script>
+    <script src="js/filtroHorario.js"></script>
+</body>
+
+</html>

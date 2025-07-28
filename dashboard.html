@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="Navbar/navbarStyle.css" />
+    <style>
+        /* tamano de espacio de la barra de busqueda*/
+        .w-80 {
+            width: 80% !important;
+        }
+
+        /* Barra de búsqueda arriba del contenido */
+        .search-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            background-color: #fff;
+            padding: 1rem;
+        }
+
+        /*Scorll del list group*/
+        .scroll-list {
+            max-height: 530px;
+            overflow-y: auto;
+        }
+        .bg-azul-personalizado {
+            background-color: #0056b3 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar-expanded d-flex flex-column">
+        <button class="btn btn-toggle m-2 align-self-start" id="toggleMenu">
+            <lord-icon src="https://cdn.lordicon.com/jectmwqf.json" trigger="click" delay="1500" stroke="bold"
+                colors="primary:#9ce5f4,secondary:#4030e8" style="width:30px;height:30px">
+            </lord-icon>
+        </button>
+
+        <ul class="nav nav-pills flex-column mt-2">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa fa-house"></i>
+                    <span class="ms-2 menu-text">Inicio</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="importar.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span class="ms-2 menu-text">Importar Archivos</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="generarHorarios.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-regular fa-calendar-days"></i>
+                    <span class="ms-2 menu-text">Generar Horarios</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesProfesores.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesMaterias.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Materias</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="index.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span class="ms-2 menu-text">Salir</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent">
+        <div class="search-bar d-flex justify-content-center align-items-center mb-4">
+            <div class="input-group w-80">
+                <input type="text" class="form-control" placeholder="Buscar..." id="searchInput">
+                <button class="btn btn-outline-primary" type="button" id="btnBuscar">
+                    <lord-icon src="https://cdn.lordicon.com/wjyqkiew.json" trigger="morph" stroke="bold"
+                        state="morph-check" colors="primary:#4030e8,secondary:#9ce5f4" style="width:30px;height:30px">
+                    </lord-icon>
+                </button>
+            </div>
+        </div>
+        <div class="container content-with-sidebar">
+            <div class="card">
+                <div class="card-header bg-primary text-white bg-azul-personalizado" id="cardHeader">
+                    <h4 class="text-center bg-azul-personalizado text-white card-title">Lista de profesores</h4>
+                    <h6 class="text-center bg-azul-personalizado text-white" id="totalProfesores">Lorem, ipsum.</h6>
+                </div>
+                <ul class="list-group list-group-flush scroll-list" id="profesorList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const h6 = document.querySelector("#cardHeader h6");
+
+            // Obtener periodos seleccionados guardados en localStorage
+            const periodosSeleccionados = JSON.parse(localStorage.getItem("periodosSeleccionados")) || [];
+
+            try {
+                // Traer lista completa de profesores
+                const response = await fetch("http://74.208.77.56:5480/profesores");
+                if (!response.ok) throw new Error("No se pudo obtener los profesores");
+
+                const profesores = await response.json();
+                console.log(JSON.parse(localStorage.getItem("periodosSeleccionados")) || []);
+
+
+                // Filtrar profesores solo de periodos seleccionados (normalizando)
+                const profesoresFiltrados = profesores.filter(prof =>
+                    periodosSeleccionados.some(p =>
+                        p.trim().toUpperCase() === prof.periodo.trim().toUpperCase()
+                    )
+                );
+
+                // Mostrar en el h6 el total filtrado y cantidad de periodos seleccionados
+                h6.textContent = `Total de profesores: ${profesoresFiltrados.length} | Periodos activos: ${periodosSeleccionados.length}`;
+            } catch (error) {
+                console.error("Error al obtener datos:", error);
+                h6.textContent = "Error al cargar datos";
+            }
+        });
+
+    </script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <script src="Navbar/estadoSideBar.js"></script>
+    <script src="js/listaProfesores.js"></script>
+    <script src="js/filtro.js"></script>
+</body>
+
+</html>
