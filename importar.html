@@ -140,7 +140,7 @@
 
             async function cargarPeriodosDesdeServidor() {
                 try {
-                    const res = await fetch('http://74.208.77.56:5480/periodos');
+                    const res = await fetch('https://cabadath.duckdns.org/api/periodos');
                     const data = await res.json();
 
                     const fileList = document.getElementById('fileList');
