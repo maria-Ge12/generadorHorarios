@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const periodosSeleccionados = JSON.parse(localStorage.getItem("periodosSeleccionados")) || [];
 
-  fetch("http://74.208.77.56:5480/profesores")
+  fetch("https://cabadath.duckdns.org/api/profesores")
     .then(response => {
       if (!response.ok) throw new Error("Error al obtener los profesores");
       return response.json();
