@@ -139,7 +139,7 @@
 
             async function cargarPeriodosDesdeServidor() {
                 try {
-                    const res = await fetch('https://cabadath.duckdns.org/api/periodos');
+                    const res = await fetch('https://cabadath.duckdns.org/api/archivos/periodos');
                     const data = await res.json();
 
                     const fileList = document.getElementById('fileList');
@@ -182,7 +182,7 @@
 
                             newConfirmBtn.onclick = async () => {
                                 try {
-                                    const deleteRes = await fetch(`http://74.208.77.56:5480/eliminar-periodo/${encodeURIComponent(periodo)}`, {
+                                    const deleteRes = await fetch(`https://cabadath.duckdns.org/api/archivos/eliminar-periodo/${encodeURIComponent(periodo)}`, {
                                         method: 'DELETE'
                                     });
                                     if (!deleteRes.ok) throw new Error('Error al eliminar');
@@ -214,7 +214,7 @@
                 e.preventDefault();
                 const formData = new FormData(e.target);
 
-                const res = await fetch('http://74.208.77.56:5480/subir-csv', {
+                const res = await fetch('https://cabadath.duckdns.org/api/archivos/subir-csv', {
                     method: 'POST',
                     body: formData
                 });

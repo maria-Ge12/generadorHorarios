@@ -8,7 +8,7 @@ export async function actualizarTotalProfesores() {
   const h6 = document.getElementById("totalProfesores");
 
   try {
-    const response = await fetch("http://74.208.77.56:5481/estadisticas");
+    const response = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/estadisticas");
     if (!response.ok) throw new Error("No se pudo obtener estadísticas");
 
     const data = await response.json();

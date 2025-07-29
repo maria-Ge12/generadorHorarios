@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     // Obtener lista de profesores desde la API
-    const response = await fetch("https://cabadath.duckdns.org/api/profesores");
+    const response = await fetch("https://cabadath.duckdns.org/api/archivos/profesores");
     if (!response.ok) throw new Error("No se pudo obtener los profesores");
 
     const profesores = await response.json();

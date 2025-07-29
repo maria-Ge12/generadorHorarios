@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Cargar asignaturas y montar tabla
-    fetch("http://74.208.77.56:5485/asignaturas")
+    fetch("https://cabadath.duckdns.org/api/crud/asignaturas/asignaturas")
         .then(response => response.json())
         .then(data => {
             const tbody = document.querySelector("#tabla-asignaturas tbody");
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnConfirmarEliminar.addEventListener("click", () => {
         if (!nombreAsignaturaEliminar) return;
 
-        fetch(`http://74.208.77.56:5485/asignaturas/${encodeURIComponent(nombreAsignaturaEliminar)}`, {
+        fetch(`https://cabadath.duckdns.org/api/crud/asignaturas/asignaturas/${encodeURIComponent(nombreAsignaturaEliminar)}`, {
             method: "DELETE"
         })
             .then(response => {
@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("Enviando PUT para actualizar materia:", idMateria, data);
 
-        fetch(`http://74.208.77.56:5485/asignaturas/${encodeURIComponent(nombreOriginal)}`, {
+        fetch(`https://cabadath.duckdns.org/api/crud/asignaturas/asignaturas/${encodeURIComponent(nombreOriginal)}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json"

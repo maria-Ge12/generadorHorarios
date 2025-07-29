@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnRegenerar.innerHTML = `Regenerando <i class="bx bx-loader bx-spin"></i>`;
 
       const urlNombre = encodeURIComponent(nombreProfesor);
-      const response = await fetch(`http://74.208.77.56:5482/regenerar-horario/${urlNombre}`, { method: "POST" });
+      const response = await fetch(`https://cabadath.duckdns.org/api/generar-horarios/regenerar-horario/${urlNombre}`, { method: "POST" });
 
       if (!response.ok) throw new Error("Error al regenerar el horario");
 

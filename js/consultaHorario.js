@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   ];
 
   try {
-    const response = await fetch("http://74.208.77.56:5482/horarios", {
+    const response = await fetch("https://cabadath.duckdns.org/api/generar-horarios/horarios", {
       method: "GET"
     });
 

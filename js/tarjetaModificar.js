@@ -61,7 +61,7 @@ export function cargarCRUDModal(profesor) {
         nuevoBtn.addEventListener("click", async () => {
             try {
                 const nombreEncoded = encodeURIComponent(profesor.nombre.trim());
-                const url = `http://74.208.77.56:5483/asigna_crud/elimina/${nombreEncoded}`;
+                const url = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/elimina/${nombreEncoded}`;
                 const response = await fetch(url, { method: "DELETE" });
 
                 if (!response.ok) throw new Error("No se pudo eliminar el profesor.");
@@ -207,7 +207,7 @@ export function cargarCRUDModal(profesor) {
     // Cargar materias desde API en el select del FORM
     (async function cargarMateriasDisponibles() {
         try {
-            const resp = await fetch("http://74.208.77.56:5480/asignaturas");
+            const resp = await fetch("https://cabadath.duckdns.org/api/archivos/asignaturas");
             if (!resp.ok) throw new Error("Error al obtener materias");
             const data = await resp.json();
 
@@ -327,7 +327,7 @@ if (modalEditar) {
 async function guardarCambiosHorario(profesor) {
     // 1. Actualizar horas
     try {
-        const urlHorario = `http://74.208.77.56:5483/asigna_crud/actualiza/${encodeURIComponent(profesor.nombre)}/horario`;
+        const urlHorario = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/actualiza/${encodeURIComponent(profesor.nombre)}/horario`;
         const bodyHorario = {
             hora_entrada: profesor.hora_entrada,
             hora_salida: profesor.hora_salida,
@@ -356,7 +356,7 @@ async function guardarCambiosHorario(profesor) {
 
         const eliminadas = originales.filter(m => !materiasLocal.includes(m));
         for (const materiaEliminada of eliminadas) {
-            const url = `http://74.208.77.56:5483/asigna_crud/elimina/${encodeURIComponent(profesor.nombre)}/materias/${encodeURIComponent(materiaEliminada)}`;
+            const url = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/elimina/${encodeURIComponent(profesor.nombre)}/materias/${encodeURIComponent(materiaEliminada)}`;
             const resp = await fetch(url, { method: "DELETE" });
             if (!resp.ok) {
                 console.error(`Error al eliminar materia ${materiaEliminada}`, await resp.text());
@@ -368,7 +368,7 @@ async function guardarCambiosHorario(profesor) {
         // 3. Agregar materias nuevas
         const nuevas = materiasLocal.filter(m => !originales.includes(m));
         for (const materiaNueva of nuevas) {
-            const urlMaterias = `http://74.208.77.56:5483/asigna_crud/agrega/${encodeURIComponent(profesor.nombre)}/materias`;
+            const urlMaterias = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/agrega/${encodeURIComponent(profesor.nombre)}/materias`;
             const bodyMateria = { nombre_completo: materiaNueva };
             const respMateria = await fetch(urlMaterias, {
                 method: "POST",
@@ -410,7 +410,7 @@ function calcularCreditosTotales(materiasLocal) {
 
 async function cargarCatalogoYRenderizar(materiasLocal, listaMaterias) {
     try {
-        const resp = await fetch("http://74.208.77.56:5480/asignaturas");
+        const resp = await fetch("https://cabadath.duckdns.org/api/archivos/asignaturas");
         if (!resp.ok) throw new Error("No se pudo cargar asignaturas");
         const data = await resp.json();
 
@@ -533,7 +533,7 @@ function cargarMateriasDesdeLocalStorage() {
 }
 
 async function calcularSiguienteGrupoUnico(profesor, materiaBase) {
-    const respEstadisticas = await fetch("http://74.208.77.56:5481/estadisticas");
+    const respEstadisticas = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/estadisticas");
     if (!respEstadisticas.ok) throw new Error("Error al obtener estadísticas");
     const dataEstadisticas = await respEstadisticas.json();
     const gruposAPI = dataEstadisticas.grupos_por_materia?.[materiaBase] || [];

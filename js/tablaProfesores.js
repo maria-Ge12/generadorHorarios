@@ -26,7 +26,7 @@ function agregarMateriaALista(materia, listaElement, materiasArray) {
 
 // TABLA GENERAL
 function cargarTablaProfesores() {
-    fetch("http://74.208.77.56:5484/profesores")
+    fetch("https://cabadath.duckdns.org/api/crud/profesores/profesores")
         .then(response => response.json())
         .then(data => {
             const tbody = document.querySelector("table tbody");
@@ -103,7 +103,7 @@ document.getElementById("btnConfirmarEliminar").addEventListener("click", () => 
 
     const nombreEncoded = encodeURIComponent(profesorNombreAEliminar);
 
-    fetch(`http://74.208.77.56:5484/profesores/${nombreEncoded}/eliminar`, {
+    fetch(`https://cabadath.duckdns.org/api/crud/profesores/profesores/${nombreEncoded}/eliminar`, {
         method: "DELETE"
     })
         .then(response => {
@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Cambiar nombre si es diferente
             if (nuevoNombre !== nombreOriginal) {
                 console.log("Modificando nombre...");
-                const urlNombre = `http://74.208.77.56:5484/profesores/${encodeURIComponent(nombreOriginal)}/nombre?nuevo_nombre=${encodeURIComponent(nuevoNombre)}`;
+                const urlNombre = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nombreOriginal)}/nombre?nuevo_nombre=${encodeURIComponent(nuevoNombre)}`;
                 const respNombre = await fetch(urlNombre, { method: "PUT" });
                 if (!respNombre.ok) throw new Error("Error al modificar el nombre.");
                 console.log("Nombre modificado correctamente.");
@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Modificar horas asignadas
             console.log("Modificando horas asignadas...");
-            const urlHoras = `http://74.208.77.56:5484/profesores/${encodeURIComponent(nuevoNombre)}/horas?horas_asignadas=${encodeURIComponent(horasAsignadas)}`;
+            const urlHoras = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/horas?horas_asignadas=${encodeURIComponent(horasAsignadas)}`;
             const respHoras = await fetch(urlHoras, {
                 method: "PUT"
             });
@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Modificar horario entrada/salida
             console.log("Modificando horario...");
-            const urlHorario = `http://74.208.77.56:5484/profesores/${encodeURIComponent(nuevoNombre)}/horario`;
+            const urlHorario = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/horario`;
             const respHorario = await fetch(urlHorario, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -225,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Modificar periodo
             console.log("Modificando periodo...");
-            const urlPeriodo = `http://74.208.77.56:5484/profesores/${encodeURIComponent(nuevoNombre)}/periodo?periodo=${encodeURIComponent(periodo)}`;
+            const urlPeriodo = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/periodo?periodo=${encodeURIComponent(periodo)}`;
             const respPeriodo = await fetch(urlPeriodo, {
                 method: "PUT"
             });
@@ -236,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Reemplazar materias
             console.log("Reemplazando materias...");
-            const urlMaterias = `http://74.208.77.56:5484/profesores/${encodeURIComponent(nuevoNombre)}/materias/reemplazar`;
+            const urlMaterias = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/materias/reemplazar`;
             const respMaterias = await fetch(urlMaterias, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

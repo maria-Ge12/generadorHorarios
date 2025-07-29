@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   nombreElem.innerHTML = `${nombreProfesor}`; //Título con nombre del profesor
 
-  fetch("http://74.208.77.56:5481/asignaciones")
+  fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignaciones")
     .then((response) => {
       if (!response.ok) throw new Error("Error en la respuesta de la API");
       return response.json();

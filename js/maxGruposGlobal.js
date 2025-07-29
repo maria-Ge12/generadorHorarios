@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const respuesta = await fetch("http://74.208.77.56:5485/asignaturas/global/max-grupos", {
+            const respuesta = await fetch("https://cabadath.duckdns.org/api/crud/asignaturas/asignaturas/global/max-grupos", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json"

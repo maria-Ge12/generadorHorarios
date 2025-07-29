@@ -25,7 +25,7 @@ if (botonGenerar) {
 
     try {
       const startTime = Date.now();
-      const response = await fetch("http://74.208.77.56:5482/generar-horarios", {
+      const response = await fetch("https://cabadath.duckdns.org/api/generar-horarios/generar-horarios", {
         method: "POST"
       });
 

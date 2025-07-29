@@ -17,7 +17,7 @@ filaTarjetas.id = "profesorList";
 // ACTUALIZAR TARJETAS USANDO btnGuardar en tarjetaModificar.js
 export async function actualizarVista() {
     try {
-        const resp = await fetch("http://74.208.77.56:5481/asignaciones");
+        const resp = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignaciones");
         if (!resp.ok) throw new Error("Error al obtener asignaciones");
 
         const datos = await resp.json();
@@ -147,7 +147,7 @@ async function asignarMaterias() {
     }
 
     try {
-        const res = await fetch("http://74.208.77.56:5481/asignar", {
+        const res = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ periodos: seleccionados })

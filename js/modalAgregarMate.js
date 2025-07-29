@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("Enviando datos al servidor:", data);
 
-        fetch("http://74.208.77.56:5485/asignaturas", {
+        fetch("https://cabadath.duckdns.org/api/crud/asignaturas/asignaturas", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const contenedor = document.getElementById("archivoSelectorContainer");
 
   try {
-    const response = await fetch("http://74.208.77.56:5480/periodos");
+    const response = await fetch("https://cabadath.duckdns.org/api/archivos/periodos");
     if (!response.ok) throw new Error("No se pudo obtener la lista de periodos");
 
     const data = await response.json();

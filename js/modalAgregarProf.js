@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
             materias
         };
 
-        fetch("http://74.208.77.56:5484/profesores/nuevo", {
+        fetch("https://cabadath.duckdns.org/api/crud/profesores/profesores/nuevo", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(nuevoProfesor)
