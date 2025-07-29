@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("formAgregarProfesor");
 
     // Cargar materias desde API
-    fetch("http://74.208.77.56:5480/asignaturas")
+    fetch("https://cabadath.duckdns.org/api/archivos/asignaturas")
         .then(response => response.json())
         .then(data => {
             data.forEach(materia => {
