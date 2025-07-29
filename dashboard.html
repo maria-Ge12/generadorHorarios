@@ -115,7 +115,7 @@
 
             try {
                 // Traer lista completa de profesores
-                const response = await fetch("http://74.208.77.56:5480/profesores");
+                const response = await fetch("https://cabadath.duckdns.org/api/profesores");
                 if (!response.ok) throw new Error("No se pudo obtener los profesores");
 
                 const profesores = await response.json();
