@@ -1,10 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
-    //mayusculas el nombre y periodo
+    //mayusculas el nombre, periodo y carreras
     document.getElementById('nombreProfesor').addEventListener('input', function () {
         this.value = this.value.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi, '').toUpperCase();
     });
     document.getElementById('periodo').addEventListener('input', function () {
         this.value = this.value.toUpperCase();
+    });
+    document.getElementById('carreras').addEventListener('input', function () {
+        this.value = this.value.replace(/[^A-ZÁÉÍÓÚÑ,\s]/gi, '').toUpperCase();
     });
 
     const btnAgregar = document.querySelector(".btn-outline-verde");
@@ -91,6 +94,15 @@ document.addEventListener("DOMContentLoaded", () => {
         form.reset();
     });
 
+    // Función para procesar carreras del input
+    function procesarCarreras(carrerasString) {
+        if (!carrerasString.trim()) return [];
+        return carrerasString
+            .split(',')
+            .map(carrera => carrera.trim().toUpperCase())
+            .filter(carrera => carrera.length > 0);
+    }
+
     // Enviar formulario
     form.addEventListener("submit", e => {
         e.preventDefault();
@@ -100,32 +112,54 @@ document.addEventListener("DOMContentLoaded", () => {
         const horaEntrada = document.getElementById("horaEntrada").value;
         const horaSalida = document.getElementById("horaSalida").value;
         const periodo = document.getElementById("periodo").value.trim();
+        const carrerasInput = document.getElementById("carreras").value.trim();
+        
+        // Validar período
         if (!validarPeriodo(periodo)) {
             mostrarToastWarning("El período debe tener el formato 'ENE-JUN 25'.");
             return;
         }
+
+        // Procesar carreras
+        const carreras = procesarCarreras(carrerasInput);
+        if (carreras.length === 0) {
+            mostrarToastWarning("Por favor ingresa al menos una carrera.");
+            return;
+        }
+
         const materias = JSON.parse(localStorage.getItem("materiasProfesor")) || [];
+        
+        // Validar todos los campos
         if (!nombre || isNaN(horasAsignadas) || !horaEntrada || !horaSalida || !periodo || materias.length === 0) {
             mostrarToastWarning("Por favor completa todos los campos y agrega al menos una materia.");
             return;
         }
 
+        // Crear objeto según la nueva API
         const nuevoProfesor = {
             nombre,
             horas_asignadas: horasAsignadas,
             hora_entrada: horaEntrada,
             hora_salida: horaSalida,
-            periodo,
-            materias
+            materias,
+            carreras,
+            periodo
         };
 
+        console.log("Datos a enviar:", nuevoProfesor); // Para debug
+
+        // Enviar a la nueva API
         fetch("https://cabadath.duckdns.org/api/crud/profesores/profesores/nuevo", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(nuevoProfesor)
         })
             .then(res => {
-                if (!res.ok) throw new Error("Error al crear profesor");
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Error ${res.status}: ${text}`);
+                    });
+                }
                 return res.json();
             })
             .then(() => {
@@ -140,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(err => {
                 console.error("Error al crear profesor:", err);
-                mostrarToastError("Error al crear el profesor. Intenta de nuevo.");
+                mostrarToastError(`Error al crear el profesor: ${err.message}`);
             });
     });
 });

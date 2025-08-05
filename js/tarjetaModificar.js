@@ -1,573 +1,801 @@
-//PROPOSITO: Actualizar la vista principal tras cambios locales
-//Esto vuelve a dibujar todas las tarjetas con los datos actualizados que llegan de la API (/asignaciones) 
-//reemplaza la vista anterior.
-//construye una tarjeta grande editable del profesor seleccionado
 import { actualizarVista } from './asignar.js';
 
-window.addEventListener("DOMContentLoaded", () => {
-    // Limpiar cualquier almacenamiento temporal si se recarga la página (F5)
-    for (let key in localStorage) {
-        if (key.startsWith("materiasProfesor_")) {
-            localStorage.removeItem(key);
-            console.log("🧹 LocalStorage limpio por recarga de página:", key);
+// ==========================================
+// CONSTANTES Y CONFIGURACIÓN
+// ==========================================
+const CONFIG = {
+    API_BASE: 'https://cabadath.duckdns.org/api',
+    STORAGE_PREFIX: 'materiasProfesor_',
+    COLORS: new Map()
+};
+
+const SELECTORS = {
+    modalBody: '#modalEditarProfesor .modal-body',
+    modalEditar: '#modalEditarProfesor',
+    modalConfirmacion: '#modalConfirmarEliminacion',
+    btnGuardar: '#btnGuardarCambios',
+    btnCancelar: '#btnCancelar',
+    btnConfirmar: '#btnConfirmarEliminar',
+    mensajeConfirmacion: '#mensajeConfirmacion',
+    toastContainer: '#toastContainer',
+    toastBody: '#toastBody'
+};
+
+// ==========================================
+// GESTIÓN DE ALMACENAMIENTO LOCAL
+// ==========================================
+class LocalStorageManager {
+    static getKey(profesorNombre) {
+        return CONFIG.STORAGE_PREFIX + profesorNombre;
+    }
+
+    static getMaterias(profesorNombre) {
+        try {
+            const key = this.getKey(profesorNombre);
+            return JSON.parse(localStorage.getItem(key)) || [];
+        } catch (error) {
+            console.error('Error al obtener materias del localStorage:', error);
+            return [];
         }
     }
-});
 
-export function cargarCRUDModal(profesor) {
-    const modalBody = document.querySelector("#modalEditarProfesor .modal-body");
-    if (!modalBody) return;
-
-    modalBody.innerHTML = ""; // Limpiar contenido anterior
-    window.profesorActual = profesor; // Guardar para edición futura
-    const key = "materiasProfesor_" + profesor.nombre;
-
-    // 1. Inicializa localStorage si está vacío: mezcla materias backend en formato string "nombre - grupo"
-    if (!localStorage.getItem(key)) {
-        const materiasIniciales = profesor.materias.map(m => {
-            if (m.grupo) return `${m.nombre_base} - ${m.grupo}`;
-            return m.nombre_base;
-        });
-        localStorage.setItem(key, JSON.stringify(materiasIniciales));
+    static setMaterias(profesorNombre, materias) {
+        try {
+            const key = this.getKey(profesorNombre);
+            localStorage.setItem(key, JSON.stringify(materias));
+            console.log('Materias guardadas en localStorage:', materias);
+        } catch (error) {
+            console.error('Error al guardar materias en localStorage:', error);
+        }
     }
 
-    //creacion de la terjeta grande
-    const card = document.createElement("div");
-    card.className = "card border-start border-info border-4 shadow-lg p-4 position-relative";
+    static removeMaterias(profesorNombre) {
+        try {
+            const key = this.getKey(profesorNombre);
+            localStorage.removeItem(key);
+            console.log('🧹 LocalStorage limpiado para:', profesorNombre);
+        } catch (error) {
+            console.error('Error al limpiar localStorage:', error);
+        }
+    }
 
-    // Botón eliminar profesor (esquina superior izquierda)
-    const btnEliminar = document.createElement("button");
-    btnEliminar.className = "btn btn-link position-absolute";
-    btnEliminar.style.top = "10px";
-    btnEliminar.style.left = "10px";
-    btnEliminar.innerHTML = `<i class="fa-solid fa-user-xmark" style="color: #74C0FC; font-size: 1.2rem;"></i>`;
-    btnEliminar.title = "Eliminar profesor";
+    static initializeMaterias(profesor) {
+        const key = this.getKey(profesor.nombre);
+        if (!localStorage.getItem(key)) {
+            const materiasIniciales = profesor.materias.map(m => {
+                return m.grupo ? `${m.nombre_base} - ${m.grupo}` : m.nombre_base;
+            });
+            this.setMaterias(profesor.nombre, materiasIniciales);
+        }
+    }
 
-    // Dentro de cargarCRUDModal o después de que creas btnEliminar:
-    btnEliminar.onclick = () => {
-        const mensaje = document.getElementById("mensajeConfirmacion");
-        mensaje.textContent = `¿Deseas eliminar al profesor ${profesor.nombre}?`;
-
-        const modalConfirmacionElement = document.getElementById("modalConfirmarEliminacion");
-        const modalConfirmacion = new bootstrap.Modal(modalConfirmacionElement);
-        modalConfirmacion.show();
-
-        const btnConfirmar = document.getElementById("btnConfirmarEliminar");
-
-        // Limpiar listeners previos
-        const nuevoBtn = btnConfirmar.cloneNode(true);
-        btnConfirmar.parentNode.replaceChild(nuevoBtn, btnConfirmar);
-
-        nuevoBtn.addEventListener("click", async () => {
-            try {
-                const nombreEncoded = encodeURIComponent(profesor.nombre.trim());
-                const url = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/elimina/${nombreEncoded}`;
-                const response = await fetch(url, { method: "DELETE" });
-
-                if (!response.ok) throw new Error("No se pudo eliminar el profesor.");
-                console.log(`✅ Profesor eliminado: ${profesor.nombre}`);
-
-                let asignaciones = JSON.parse(localStorage.getItem("asignaciones")) || [];
-                asignaciones = asignaciones.filter(p => p.nombre !== profesor.nombre);
-                localStorage.setItem("asignaciones", JSON.stringify(asignaciones));
-
-                // Cerrar modales
-                bootstrap.Modal.getInstance(modalConfirmacionElement)?.hide();
-                bootstrap.Modal.getInstance(document.getElementById("modalEditarProfesor"))?.hide();
-
-                // Mostrar Toast
-                mostrarToast(`✅ Profesor eliminado: ${profesor.nombre}`);
-
-                // Recargar vista
-                await actualizarVista();
-            } catch (error) {
-                console.error("❌ Error al eliminar profesor:", error);
-                alert("No se pudo eliminar el profesor. Revisa la consola.");
+    static cleanupOnReload() {
+        try {
+            for (let key in localStorage) {
+                if (key.startsWith(CONFIG.STORAGE_PREFIX)) {
+                    localStorage.removeItem(key);
+                    console.log("🧹 LocalStorage limpio por recarga de página:", key);
+                }
             }
+        } catch (error) {
+            console.error('Error al limpiar localStorage en recarga:', error);
+        }
+    }
+}
+
+// ==========================================
+// GESTIÓN DE API
+// ==========================================
+class ApiManager {
+    static async eliminarProfesor(profesorNombre) {
+        try {
+            const nombreEncoded = encodeURIComponent(profesorNombre.trim());
+            const url = `${CONFIG.API_BASE}/crud/tarjetas/asigna_crud/elimina/${nombreEncoded}`;
+            const response = await fetch(url, { method: "DELETE" });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log(`✅ Profesor eliminado: ${profesorNombre}`);
+            return true;
+        } catch (error) {
+            console.error('❌ Error al eliminar profesor:', error);
+            throw error;
+        }
+    }
+
+    static async actualizarHorario(profesor) {
+        try {
+            const url = `${CONFIG.API_BASE}/crud/tarjetas/asigna_crud/actualiza/${encodeURIComponent(profesor.nombre)}/horario`;
+            const body = {
+                hora_entrada: profesor.hora_entrada,
+                hora_salida: profesor.hora_salida,
+            };
+            
+            const response = await fetch(url, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log("✅ Horario actualizado");
+            return true;
+        } catch (error) {
+            console.error('❌ Error al actualizar horario:', error);
+            throw error;
+        }
+    }
+
+    static async eliminarMateria(profesorNombre, materiaCompleta) {
+        try {
+            const url = `${CONFIG.API_BASE}/crud/tarjetas/asigna_crud/elimina/${encodeURIComponent(profesorNombre)}/materias/${encodeURIComponent(materiaCompleta)}`;
+            const response = await fetch(url, { method: "DELETE" });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log("✅ Materia eliminada en backend:", materiaCompleta);
+            return true;
+        } catch (error) {
+            console.error(`❌ Error al eliminar materia ${materiaCompleta}:`, error);
+            throw error;
+        }
+    }
+
+    static async agregarMateria(profesorNombre, materiaCompleta) {
+        try {
+            const url = `${CONFIG.API_BASE}/crud/tarjetas/asigna_crud/agrega/${encodeURIComponent(profesorNombre)}/materias`;
+            const body = { nombre_completo: materiaCompleta };
+            
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log("✅ Materia agregada en backend:", materiaCompleta);
+            return true;
+        } catch (error) {
+            console.error(`❌ Error al agregar materia ${materiaCompleta}:`, error);
+            throw error;
+        }
+    }
+
+    static async obtenerAsignaturas() {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE}/archivos/asignaturas`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Error al obtener asignaturas:', error);
+            throw error;
+        }
+    }
+
+    static async obtenerEstadisticas() {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE}/asignacion-materias/estadisticas`);
+            if (!response.ok) {
+                // Si la API no existe, devolver datos por defecto
+                if (response.status === 404) {
+                    console.warn('⚠️ API de estadísticas no disponible, usando datos por defecto');
+                    return { grupos_por_materia: {} };
+                }
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Error al obtener estadísticas:', error);
+            // Devolver estructura por defecto en caso de error
+            return { grupos_por_materia: {} };
+        }
+    }
+}
+
+// ==========================================
+// UTILIDADES
+// ==========================================
+class Utils {
+    static getCareerColor(carrera) {
+        if (!CONFIG.COLORS.has(carrera)) {
+            const hash = carrera.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+            const hue = hash % 360;
+            CONFIG.COLORS.set(carrera, `hsl(${hue}, 65%, 80%)`);
+        }
+        return CONFIG.COLORS.get(carrera);
+    }
+
+    static calcularCreditosTotales(materiasLocal, catalogoAsignaturas) {
+        let total = 0;
+        materiasLocal.forEach(materiaCompleta => {
+            const nombreBase = materiaCompleta.split(" - ")[0].trim();
+            const creditos = parseFloat(catalogoAsignaturas?.[nombreBase] || 0);
+            total += creditos;
         });
-    };
+        return total;
+    }
 
-    // Título con nombre del profesor
-    const nombre = document.createElement("h5");
-    nombre.className = "card-title m-2 text-center text-info";
-    nombre.innerHTML = `<i class="fa-solid fa-user-tie me-2"></i>${profesor.nombre}`;
+    static mostrarToast(mensaje) {
+        try {
+            const toastContainer = document.querySelector(SELECTORS.toastContainer);
+            const toastBody = document.querySelector(SELECTORS.toastBody);
+            
+            if (!toastContainer || !toastBody) {
+                console.warn('Toast elements not found, using alert instead');
+                alert(mensaje);
+                return;
+            }
+            
+            toastBody.textContent = mensaje;
+            const toast = new bootstrap.Toast(toastContainer);
+            toast.show();
+        } catch (error) {
+            console.error('Error al mostrar toast:', error);
+            alert(mensaje);
+        }
+    }
 
-    // Horas asignadas y creditos totales
-    const info = document.createElement("div");
-    info.className = "d-flex justify-content-between mb-1";
+    static async calcularSiguienteGrupoUnico(profesor, materiaBase) {
+        try {
+            const dataEstadisticas = await ApiManager.obtenerEstadisticas();
+            const gruposAPI = dataEstadisticas.grupos_por_materia?.[materiaBase] || [];
 
-    info.innerHTML = `
-        <span><strong>Horas asignadas:</strong> ${profesor.horas_asignadas}</span>
-        <span><strong>Créditos totales:</strong> <span id="creditosTotales">${profesor.creditos_asignados}</span></span>
-    `;
+            // Obtener asignaciones actuales locales
+            const asignaciones = JSON.parse(localStorage.getItem("asignaciones")) || [];
+            const gruposAsignadosLocales = asignaciones
+                .flatMap(p => p.materias || [])
+                .filter(m => m && m.nombre_base === materiaBase)
+                .map(m => {
+                    if (m.nombre_completo && m.nombre_completo.includes(" - ")) {
+                        return m.nombre_completo.split(" - ")[1];
+                    }
+                    return null;
+                })
+                .filter(g => g);
 
-    // Horas entrada / salida
-    const datosHoras = document.createElement("form");
-    datosHoras.className = "row justify-content-center align-items-center mb-2";
-    datosHoras.innerHTML = `
-        <div class="col-6">
-            <label class="form-label mb-1 "><strong>Entrada</strong></label>
-            <input type="time" class="form-control form-control-sm" value="${profesor.hora_entrada || ''}" name="entrada-${profesor.id}">
-        </div>
-        <div class="col-6">
-            <label class="form-label mb-1"><strong>Salida</strong></label>
-            <input type="time" class="form-control form-control-sm" value="${profesor.hora_salida || ''}" name="salida-${profesor.id}">
-        </div>
-    `;
+            const gruposUsados = Array.from(new Set([...gruposAPI, ...gruposAsignadosLocales]));
+            const letrasUsadas = gruposUsados.map(g => g.slice(-1)).sort();
+            const ultimaLetra = letrasUsadas.length > 0 ? letrasUsadas[letrasUsadas.length - 1] : '@';
+            const siguienteLetra = String.fromCharCode(ultimaLetra.charCodeAt(0) + 1);
+            const nuevoGrupo = `X${siguienteLetra}`;
 
-    // datos enviados a la funcion tomados del form de hora entrada / salida
-    const inputEntrada = datosHoras.querySelector(`input[name="entrada-${profesor.id}"]`);
-    const inputSalida = datosHoras.querySelector(`input[name="salida-${profesor.id}"]`);
+            if (gruposUsados.includes(nuevoGrupo)) {
+                throw new Error("No se pudo generar un grupo único. Límite alcanzado");
+            }
 
-    inputEntrada.addEventListener("change", (e) => {
-        window.profesorActual.hora_entrada = e.target.value;
-        console.log("Hora entrada actualizada localmente:", window.profesorActual.hora_entrada);
-    });
-    inputSalida.addEventListener("change", (e) => {
-        window.profesorActual.hora_salida = e.target.value;
-        console.log("Hora salida actualizada localmente:", window.profesorActual.hora_salida);
-    });
+            return nuevoGrupo;
+        } catch (error) {
+            console.error('Error al calcular siguiente grupo:', error);
+            // En caso de error, generar grupo básico
+            const timestamp = Date.now().toString().slice(-3);
+            return `X${String.fromCharCode(65 + parseInt(timestamp) % 26)}`;
+        }
+    }
+}
 
-    // Lista de Materias
-    const materiasDiv = document.createElement("div");
-    materiasDiv.className = "m-1";
+// ==========================================
+// COMPONENTES UI
+// ==========================================
+class UIComponents {
+    static crearBotonEliminarProfesor(profesor, onEliminar) {
+        const btnEliminar = document.createElement("button");
+        btnEliminar.className = "btn btn-link position-absolute";
+        btnEliminar.style.cssText = "top: 10px; left: 10px;";
+        btnEliminar.innerHTML = `<i class="fa-solid fa-user-xmark" style="color: #74C0FC; font-size: 1.2rem;"></i>`;
+        btnEliminar.title = "Eliminar profesor";
+        btnEliminar.onclick = () => onEliminar(profesor);
+        return btnEliminar;
+    }
 
-    const tituloMaterias = document.createElement("p");
-    tituloMaterias.className = "fw-semibold m-0 text-center";
-    tituloMaterias.textContent = "Materias asignadas:";
+    static crearTituloProfesor(profesor) {
+        const nombre = document.createElement("h5");
+        nombre.className = "card-title m-2 text-center text-info";
+        nombre.innerHTML = `<i class="fa-solid fa-user-tie me-2"></i>${profesor.nombre}`;
+        return nombre;
+    }
 
-    const listaMaterias = document.createElement("ul");
-    listaMaterias.className = "list-group";
-    listaMaterias.id = "listaMaterias";
+    static crearInfoProfesor(profesor) {
+        const info = document.createElement("div");
+        info.className = "d-flex justify-content-between mb-1";
+        info.innerHTML = `
+            <span><strong>Horas asignadas:</strong> ${profesor.horas_asignadas}</span>
+            <span><strong>Créditos totales:</strong> <span id="creditosTotales">${profesor.creditos_asignados}</span></span>
+        `;
+        return info;
+    }
 
-    profesor.materias.forEach((materia) => {
-        const nombreCompleto = materia.grupo
-            ? `${materia.nombre_base} - ${materia.grupo}`
-            : materia.nombre_base;
+    static crearFormularioHorario(profesor, onChange) {
+        const datosHoras = document.createElement("form");
+        datosHoras.className = "row justify-content-center align-items-center mb-2";
+        datosHoras.innerHTML = `
+            <div class="col-6">
+                <label class="form-label mb-1"><strong>Entrada</strong></label>
+                <input type="time" class="form-control form-control-sm" value="${profesor.hora_entrada || ''}" name="entrada-${profesor.id}">
+            </div>
+            <div class="col-6">
+                <label class="form-label mb-1"><strong>Salida</strong></label>
+                <input type="time" class="form-control form-control-sm" value="${profesor.hora_salida || ''}" name="salida-${profesor.id}">
+            </div>
+        `;
 
+        const inputEntrada = datosHoras.querySelector(`input[name="entrada-${profesor.id}"]`);
+        const inputSalida = datosHoras.querySelector(`input[name="salida-${profesor.id}"]`);
+        
+        inputEntrada.addEventListener("change", (e) => onChange('hora_entrada', e.target.value));
+        inputSalida.addEventListener("change", (e) => onChange('hora_salida', e.target.value));
+
+        return datosHoras;
+    }
+
+    static crearItemMateria(materiaCompleta, creditos, onEliminar) {
         const li = document.createElement("li");
         li.className = "list-group-item d-flex align-items-center";
-        li.style.border = "2px solid #74C0FC";
-        li.style.borderRadius = "6px";
-        li.style.marginBottom = "4px";
-        li.style.fontSize = "0.95rem";
-        li.style.padding = "6px 12px";
+        li.style.cssText = `
+            border: 2px solid #74C0FC;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            padding: 6px 12px;
+        `;
 
-        // Contenedor del nombre: flexible y con wrap para 2 líneas
         const contenedorNombre = document.createElement("div");
-        contenedorNombre.style.flexGrow = "1";
-        contenedorNombre.style.whiteSpace = "normal";  // permite salto de línea
-        contenedorNombre.style.wordBreak = "break-word"; // para palabras largas
+        contenedorNombre.style.cssText = `
+            flex-grow: 1;
+            white-space: normal;
+            word-break: break-word;
+        `;
+        contenedorNombre.textContent = materiaCompleta;
 
-        contenedorNombre.textContent = nombreCompleto;
-
-        // Créditos: bloque fijo, sin wrap, alineado centro vertical
         const spanCreditos = document.createElement("span");
         spanCreditos.className = "text-muted small";
-        spanCreditos.style.whiteSpace = "nowrap";
-        spanCreditos.style.marginLeft = "12px";
-        spanCreditos.style.flexShrink = "0";  // para que no se reduzca
-        spanCreditos.textContent = `Créditos: ${materia.creditos ?? '-'}`;
+        spanCreditos.style.cssText = `
+            white-space: nowrap;
+            margin-left: 12px;
+            flex-shrink: 0;
+        `;
+        spanCreditos.textContent = `Créditos: ${creditos ?? '-'}`;
 
-        // Icono de eliminar
         const iconoEliminar = document.createElement("i");
         iconoEliminar.className = "fa-solid fa-delete-left";
-        iconoEliminar.style.color = "#74C0FC";
-        iconoEliminar.style.cursor = "pointer";
-        iconoEliminar.style.marginLeft = "12px";
+        iconoEliminar.style.cssText = `
+            color: #74C0FC;
+            cursor: pointer;
+            margin-left: 12px;
+        `;
         iconoEliminar.title = "Eliminar materia";
-
-        iconoEliminar.addEventListener("click", () => {
-            console.log(`🗑️ Materia marcada para eliminar: ${nombreCompleto}`);
-            eliminarMateria(nombreCompleto);
-        });
+        iconoEliminar.addEventListener("click", () => onEliminar(materiaCompleta));
 
         li.appendChild(contenedorNombre);
         li.appendChild(spanCreditos);
         li.appendChild(iconoEliminar);
 
-        listaMaterias.appendChild(li);
-    });
+        return li;
+    }
 
-    // FORMULARIO PARA AGREGAR MATERIA 
-    const formAgregarMateria = document.createElement("div");
-    formAgregarMateria.className = "mt-3";
-    formAgregarMateria.innerHTML = `
-        <label for="selectMateria" class="form-label fw-semibold text-center w-100">Agregar materia:</label>
-        <div class="input-group">
-            <select id="selectMateria" class="form-select form-select-sm">
-                <option value="">Selecciona una materia...</option>
-            </select>
-            <button class="btn btn-outline-primary btn-sm" id="btnAgregarMateria">
-                <i class="fa-solid fa-circle-plus me-1" style="color: #74C0FC;"></i>Agregar
-            </button>
-        </div>
-    `;
+    static async crearFormularioAgregarMateria(onAgregar) {
+        const formAgregarMateria = document.createElement("div");
+        formAgregarMateria.className = "mt-3";
+        formAgregarMateria.innerHTML = `
+            <label for="selectMateria" class="form-label fw-semibold text-center w-100">Agregar materia:</label>
+            <div class="input-group">
+                <select id="selectMateria" class="form-select form-select-sm">
+                    <option value="">Selecciona una materia...</option>
+                </select>
+                <button class="btn btn-outline-primary btn-sm" id="btnAgregarMateria">
+                    <i class="fa-solid fa-circle-plus me-1" style="color: #74C0FC;"></i>Agregar
+                </button>
+            </div>
+        `;
 
-    // Cargar materias desde API en el select del FORM
-    (async function cargarMateriasDisponibles() {
+        const select = formAgregarMateria.querySelector("#selectMateria");
+        const btnAgregar = formAgregarMateria.querySelector("#btnAgregarMateria");
+
+        // Cargar materias disponibles
         try {
-            const resp = await fetch("https://cabadath.duckdns.org/api/archivos/asignaturas");
-            if (!resp.ok) throw new Error("Error al obtener materias");
-            const data = await resp.json();
+            const data = await ApiManager.obtenerAsignaturas();
+            const fragment = document.createDocumentFragment();
 
-            const select = formAgregarMateria.querySelector("#selectMateria");
-            select.innerHTML = '<option value="">Selecciona una materia...</option>';
-
-            data.sort((a, b) => a.ASIGNATURA.localeCompare(b.ASIGNATURA))
-                .forEach(({ ASIGNATURA, CRED }) => {
+            data
+                .sort((a, b) => a.ASIGNATURA.localeCompare(b.ASIGNATURA))
+                .forEach(item => {
                     const option = document.createElement("option");
-                    option.value = ASIGNATURA;
-                    option.textContent = `${ASIGNATURA} (créditos: ${CRED})`;
-                    select.appendChild(option);
+                    option.value = item.ASIGNATURA;
+                    option.textContent = `${item.ASIGNATURA} | ${item.CARRERA} - Sem.${item.SEM} (${item.CRED} créd.)`;
+                    option.style.backgroundColor = Utils.getCareerColor(item.CARRERA);
+                    fragment.appendChild(option);
                 });
 
-        } catch (err) {
-            console.error("Error cargando materias:", err);
-            alert("No se pudieron cargar las materias.");
+            select.appendChild(fragment);
+        } catch (error) {
+            select.innerHTML = '<option value="">Error cargando materias</option>';
         }
-    })();
 
-    materiasDiv.appendChild(tituloMaterias);
-    materiasDiv.appendChild(listaMaterias);
-    materiasDiv.appendChild(formAgregarMateria);
-    cargarMateriasDesdeLocalStorage();
+        btnAgregar.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (select.value) {
+                onAgregar(select.value);
+                select.value = "";
+            } else {
+                alert("Selecciona una materia");
+            }
+        });
 
-    card.appendChild(btnEliminar);
-    card.appendChild(nombre);
-    card.appendChild(info);
-    card.appendChild(datosHoras);
-    card.appendChild(materiasDiv);
-    modalBody.appendChild(card);
+        return formAgregarMateria;
+    }
+}
 
-    cargarCatalogoYRenderizar();
+// ==========================================
+// MANEJADOR PRINCIPAL DE MATERIAS
+// ==========================================
+class MateriasManager {
+    constructor(profesor) {
+        this.profesor = profesor;
+        this.catalogoAsignaturas = {};
+        this.listaMaterias = null;
+        this.init();
+    }
 
-    // Luego asignar evento:
-    const btnAgregarMateria = formAgregarMateria.querySelector("#btnAgregarMateria");
-    const selectMateria = formAgregarMateria.querySelector("#selectMateria");
-    //BOTON AGREGAR MATERIA LOCALMENTE
-    btnAgregarMateria.addEventListener("click", async (e) => {
-        e.preventDefault();
+    async init() {
+        LocalStorageManager.initializeMaterias(this.profesor);
+        await this.cargarCatalogo();
+    }
 
-        const key = "materiasProfesor_" + window.profesorActual.nombre;
-        const select = formAgregarMateria.querySelector("#selectMateria");
-        const materiaBase = select.value;
-        if (!materiaBase) {
-            alert("Selecciona una materia");
-            return;
-        }
+    async cargarCatalogo() {
         try {
-            const grupo = await calcularSiguienteGrupoUnico(window.profesorActual, materiaBase);
+            const data = await ApiManager.obtenerAsignaturas();
+            this.catalogoAsignaturas = {};
+            data.forEach(({ ASIGNATURA, CRED }) => {
+                this.catalogoAsignaturas[ASIGNATURA] = CRED;
+            });
+        } catch (error) {
+            console.error('Error cargando catálogo:', error);
+            Utils.mostrarToast("Error cargando catálogo de asignaturas");
+        }
+    }
+
+    setListaContainer(container) {
+        this.listaMaterias = container;
+        this.renderizar();
+    }
+
+    renderizar() {
+        if (!this.listaMaterias) return;
+
+        const materiasLocal = LocalStorageManager.getMaterias(this.profesor.nombre);
+        this.listaMaterias.innerHTML = "";
+
+        materiasLocal.forEach(materiaCompleta => {
+            const nombreBase = materiaCompleta.split(" - ")[0].trim();
+            const creditos = this.catalogoAsignaturas[nombreBase];
+            
+            const itemMateria = UIComponents.crearItemMateria(
+                materiaCompleta,
+                creditos,
+                (materia) => this.eliminarMateria(materia)
+            );
+            
+            this.listaMaterias.appendChild(itemMateria);
+        });
+
+        this.actualizarCreditosTotales();
+    }
+
+    eliminarMateria(materiaCompleta) {
+        const materiasLocal = LocalStorageManager.getMaterias(this.profesor.nombre);
+        const nuevasMaterias = materiasLocal.filter(m => m !== materiaCompleta);
+        LocalStorageManager.setMaterias(this.profesor.nombre, nuevasMaterias);
+        this.renderizar();
+    }
+
+    async agregarMateria(materiaBase) {
+        try {
+            const grupo = await Utils.calcularSiguienteGrupoUnico(this.profesor, materiaBase);
             const materiaCompleta = `${materiaBase} - ${grupo}`;
-
-            let materiasLocal = JSON.parse(localStorage.getItem(key)) || [];
-
+            
+            const materiasLocal = LocalStorageManager.getMaterias(this.profesor.nombre);
+            
             if (materiasLocal.includes(materiaCompleta)) {
                 alert("Esa materia con grupo ya está asignada");
                 return;
             }
+            
             materiasLocal.push(materiaCompleta);
-            localStorage.setItem(key, JSON.stringify(materiasLocal));
-            console.log("Guardando materias localmente:", materiasLocal);
-
-            const listaMateriasContainer = document.getElementById("listaMaterias");
-            renderizarMateriasConCreditos(materiasLocal, listaMateriasContainer);
-
-            select.value = "";
+            LocalStorageManager.setMaterias(this.profesor.nombre, materiasLocal);
+            this.renderizar();
         } catch (error) {
             alert("Error generando grupo: " + error.message);
         }
-    });
-}
-
-// ------------------------------------------- BOTONES -------------------------------------------------------------
-//BOTON GUARDAR
-const btnGuardar = document.getElementById("btnGuardarCambios");
-if (btnGuardar) {
-    btnGuardar.addEventListener("click", async () => {
-        if (window.profesorActual) {
-            await guardarCambiosHorario(window.profesorActual);
-            await actualizarVista();
-
-            // Cerrar modal Bootstrap
-            const modalElement = document.getElementById("modalEditarProfesor");
-            const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-            modalInstance.hide();
-            btnGuardar.blur();
-        } else {
-            alert("No hay profesor seleccionado");
-        }
-    });
-}
-
-const btnCancelar = document.getElementById("btnCancelar");
-if (btnCancelar) {
-    btnCancelar.addEventListener("click", () => {
-        if (window.profesorActual?.nombre) {
-            const materiasLocalKey = "materiasProfesor_" + window.profesorActual.nombre;
-            localStorage.removeItem(materiasLocalKey);
-            console.log("LocalStorage cancelado para:", window.profesorActual.nombre);
-        }
-    });
-}
-
-// También limpiar localStorage si se cierra el modal sin hacer clic en Cancelar
-const modalEditar = document.getElementById("modalEditarProfesor");
-if (modalEditar) {
-    modalEditar.addEventListener("hidden.bs.modal", () => {
-        if (window.profesorActual?.nombre) {
-            const key = "materiasProfesor_" + window.profesorActual.nombre;
-            localStorage.removeItem(key);
-            console.log("🧹 LocalStorage limpiado por cierre del modal:", key);
-        }
-    });
-}
-
-//------------------------------------------- FUNCIONES DE MODIFICACIONES CON APIS ------------------------------------------------
-async function guardarCambiosHorario(profesor) {
-    // 1. Actualizar horas
-    try {
-        const urlHorario = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/actualiza/${encodeURIComponent(profesor.nombre)}/horario`;
-        const bodyHorario = {
-            hora_entrada: profesor.hora_entrada,
-            hora_salida: profesor.hora_salida,
-        };
-        const respHorario = await fetch(urlHorario, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodyHorario),
-        });
-        if (!respHorario.ok) throw new Error(`Error al actualizar horario: ${respHorario.statusText}`);
-        console.log("Horas actualizadas");
-    } catch (error) {
-        console.error(error);
-        alert("Error al actualizar horario. Intenta de nuevo.");
-        return;
     }
 
-    // 2. Detectar materias eliminadas y llamar API DELETE
-    try {
-        const key = "materiasProfesor_" + profesor.nombre;
-        const materiasLocal = JSON.parse(localStorage.getItem(key)) || [];
-
-        const originales = profesor.materias.map(m => {
-            return m.grupo ? `${m.nombre_base} - ${m.grupo}` : m.nombre_base;
-        });
-
-        const eliminadas = originales.filter(m => !materiasLocal.includes(m));
-        for (const materiaEliminada of eliminadas) {
-            const url = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/elimina/${encodeURIComponent(profesor.nombre)}/materias/${encodeURIComponent(materiaEliminada)}`;
-            const resp = await fetch(url, { method: "DELETE" });
-            if (!resp.ok) {
-                console.error(`Error al eliminar materia ${materiaEliminada}`, await resp.text());
-            } else {
-                console.log("Materia eliminada en backend:", materiaEliminada);
-            }
-        }
-
-        // 3. Agregar materias nuevas
-        const nuevas = materiasLocal.filter(m => !originales.includes(m));
-        for (const materiaNueva of nuevas) {
-            const urlMaterias = `https://cabadath.duckdns.org/api/crud/tarjetas/asigna_crud/agrega/${encodeURIComponent(profesor.nombre)}/materias`;
-            const bodyMateria = { nombre_completo: materiaNueva };
-            const respMateria = await fetch(urlMaterias, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyMateria),
-            });
-            if (!respMateria.ok) {
-                console.error(`Error al agregar materia ${materiaNueva}`, await respMateria.text());
-            }
-        }
-
-        localStorage.removeItem(key); // Limpiar cache local después de guardar
-        console.log("Cambios guardados (materias eliminadas y agregadas)");
-    } catch (error) {
-        console.error("Error guardando materias:", error);
-    }
-    return true;
-}
-
-// ------------------------------------------- FUNCIONES EXTRA -------------------------------------------
-function eliminarMateria(materiaCompleta) {
-    const key = "materiasProfesor_" + window.profesorActual.nombre;
-    let materiasLocal = JSON.parse(localStorage.getItem(key)) || [];
-
-    materiasLocal = materiasLocal.filter(m => m !== materiaCompleta);
-    localStorage.setItem(key, JSON.stringify(materiasLocal));
-    cargarMateriasDesdeLocalStorage();
-}
-
-function calcularCreditosTotales(materiasLocal) {
-    let total = 0;
-    materiasLocal.forEach(materiaCompleta => {
-        const nombreBase = materiaCompleta.split(" - ")[0].trim();
-        const creditos = parseFloat(window.catalogoAsignaturas?.[nombreBase] || 0);
-        total += creditos;
-    });
-    return total;
-}
-
-async function cargarCatalogoYRenderizar(materiasLocal, listaMaterias) {
-    try {
-        const resp = await fetch("https://cabadath.duckdns.org/api/archivos/asignaturas");
-        if (!resp.ok) throw new Error("No se pudo cargar asignaturas");
-        const data = await resp.json();
-
-        window.catalogoAsignaturas = {};
-        data.forEach(({ ASIGNATURA, CRED }) => {
-            window.catalogoAsignaturas[ASIGNATURA] = CRED;
-        });
-
-        // ✅ Asegurarse de que listaMaterias existe antes de renderizar
-        if (listaMaterias) {
-            renderizarMateriasConCreditos(materiasLocal, listaMaterias);
-        } else {
-            console.warn("Contenedor listaMaterias no encontrado al intentar renderizar.");
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error cargando catálogo de asignaturas");
-    }
-}
-
-function renderizarMateriasConCreditos(materiasLocal, listaMateriasContainer) {
-    listaMateriasContainer.innerHTML = ""; // limpiar
-
-    materiasLocal.forEach(materiaCompleta => {
-        // Obtener nombre base para buscar créditos
-        const nombreBase = materiaCompleta.split(" - ")[0].trim();
-        const creditos = window.catalogoAsignaturas?.[nombreBase] ?? "-";
-
-        const li = document.createElement("li");
-        li.className = "list-group-item d-flex align-items-center";
-        li.style.border = "2px solid #74C0FC";
-        li.style.borderRadius = "6px";
-        li.style.marginBottom = "4px";
-        li.style.fontSize = "0.95rem";
-        li.style.padding = "6px 12px";
-
-        // Contenedor nombre
-        const contenedorNombre = document.createElement("div");
-        contenedorNombre.style.flexGrow = "1";
-        contenedorNombre.style.whiteSpace = "normal";
-        contenedorNombre.style.wordBreak = "break-word";
-        contenedorNombre.textContent = materiaCompleta;
-
-        // Créditos
-        const spanCreditos = document.createElement("span");
-        spanCreditos.className = "text-muted small";
-        spanCreditos.style.whiteSpace = "nowrap";
-        spanCreditos.style.marginLeft = "12px";
-        spanCreditos.style.flexShrink = "0";
-        spanCreditos.textContent = `Créditos: ${creditos}`;
-
-        const creditosTotales = calcularCreditosTotales(materiasLocal);
+    actualizarCreditosTotales() {
+        const materiasLocal = LocalStorageManager.getMaterias(this.profesor.nombre);
+        const creditosTotales = Utils.calcularCreditosTotales(materiasLocal, this.catalogoAsignaturas);
         const creditosSpan = document.getElementById("creditosTotales");
         if (creditosSpan) {
             creditosSpan.textContent = creditosTotales;
         }
-
-        // Icono eliminar
-        const iconEliminar = document.createElement("i");
-        iconEliminar.className = "fa-solid fa-delete-left";
-        iconEliminar.style.color = "#74C0FC";
-        iconEliminar.style.cursor = "pointer";
-        iconEliminar.style.marginLeft = "12px";
-        iconEliminar.title = "Eliminar materia";
-
-        iconEliminar.addEventListener("click", () => {
-            eliminarMateria(materiaCompleta);
-            // Actualizar vista tras eliminar
-            const nuevasMaterias = JSON.parse(localStorage.getItem("materiasProfesor_" + window.profesorActual.nombre)) || [];
-            renderizarMateriasConCreditos(nuevasMaterias, listaMateriasContainer);
-        });
-
-        li.appendChild(contenedorNombre);
-        li.appendChild(spanCreditos);
-        li.appendChild(iconEliminar);
-
-        listaMateriasContainer.appendChild(li);
-    });
-}
-
-function cargarMateriasDesdeLocalStorage() {
-    const listaMaterias = document.getElementById("listaMaterias");
-    if (!listaMaterias) return;
-
-    const materiasLocal = JSON.parse(localStorage.getItem("materiasProfesor_" + window.profesorActual.nombre)) || [];
-    console.log("Materias cargadas desde localStorage:", materiasLocal);
-    listaMaterias.innerHTML = "";
-
-    materiasLocal.forEach(materiaCompleta => {
-        const li = document.createElement("li");
-        li.className = "list-group-item d-flex justify-content-between align-items-center";
-        li.style.border = "3px solid #74C0FC";
-        li.style.borderRadius = "6px";
-        li.style.marginBottom = "1px";
-
-        const span = document.createElement("span");
-        span.textContent = materiaCompleta;
-
-        const iconEliminar = document.createElement("i");
-        iconEliminar.className = "fa-solid fa-delete-left";
-        iconEliminar.style.color = "#74C0FC";
-        iconEliminar.style.cursor = "pointer";
-        iconEliminar.title = "Eliminar materia";
-
-        iconEliminar.addEventListener("click", () => {
-            eliminarMateria(materiaCompleta);
-        });
-
-        li.appendChild(span);
-        li.appendChild(iconEliminar);
-        listaMaterias.appendChild(li);
-    });
-    // ➕ Aquí actualizamos las horas asignadas si no hay materias
-    const info = document.querySelector(".card-title + p"); // p después del nombre
-    if (info) {
-        const horas = materiasLocal.length > 0 ? window.profesorActual.horas_asignadas : 0;
-        info.innerHTML = `<strong>Horas asignadas:</strong> ${horas}`;
     }
-}
 
-async function calcularSiguienteGrupoUnico(profesor, materiaBase) {
-    const respEstadisticas = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/estadisticas");
-    if (!respEstadisticas.ok) throw new Error("Error al obtener estadísticas");
-    const dataEstadisticas = await respEstadisticas.json();
-    const gruposAPI = dataEstadisticas.grupos_por_materia?.[materiaBase] || [];
+    async guardarCambios() {
+        try {
+            // Actualizar horario
+            await ApiManager.actualizarHorario(this.profesor);
 
-    // Obtener asignaciones actuales locales (localStorage)
-    const asignaciones = JSON.parse(localStorage.getItem("asignaciones")) || [];
-    const gruposAsignadosLocales = asignaciones
-        .flatMap(p => p.materias)
-        .filter(m => m.nombre_base === materiaBase)
-        .map(m => {
-            if (m.nombre_completo && m.nombre_completo.includes(" - ")) {
-                return m.nombre_completo.split(" - ")[1]; // grupo "XA", "XB", etc
+            // Detectar cambios en materias
+            const materiasLocal = LocalStorageManager.getMaterias(this.profesor.nombre);
+            const originales = this.profesor.materias.map(m => {
+                return m.grupo ? `${m.nombre_base} - ${m.grupo}` : m.nombre_base;
+            });
+
+            // Eliminar materias
+            const eliminadas = originales.filter(m => !materiasLocal.includes(m));
+            for (const materia of eliminadas) {
+                await ApiManager.eliminarMateria(this.profesor.nombre, materia);
             }
-            return null;
-        })
-        .filter(g => g);
-    const gruposUsados = Array.from(new Set([...gruposAPI, ...gruposAsignadosLocales]));
-    const letrasUsadas = gruposUsados.map(g => g.slice(-1)); // toma solo la letra final
-    letrasUsadas.sort();
-    const ultimaLetra = letrasUsadas.length > 0 ? letrasUsadas[letrasUsadas.length - 1] : '@';
-    const siguienteLetra = String.fromCharCode(ultimaLetra.charCodeAt(0) + 1);
-    const nuevoGrupo = `X${siguienteLetra}`;
 
-    if (gruposUsados.includes(nuevoGrupo)) {
-        throw new Error("No se pudo generar un grupo único. Límite alcanzado?");
+            // Agregar materias nuevas
+            const nuevas = materiasLocal.filter(m => !originales.includes(m));
+            for (const materia of nuevas) {
+                await ApiManager.agregarMateria(this.profesor.nombre, materia);
+            }
+
+            LocalStorageManager.removeMaterias(this.profesor.nombre);
+            console.log("✅ Cambios guardados exitosamente");
+            return true;
+        } catch (error) {
+            console.error('❌ Error guardando cambios:', error);
+            throw error;
+        }
     }
-    return nuevoGrupo;
 }
 
-function mostrarToast(mensaje) {
-    const toastContainer = document.getElementById("toastContainer");
-    const toastBody = document.getElementById("toastBody");
-    toastBody.textContent = mensaje;
+// ==========================================
+// MANEJADOR DE MODALES
+// ==========================================
+class ModalManager {
+    static mostrarConfirmacionEliminar(profesor, onConfirmar) {
+        try {
+            const mensaje = document.querySelector(SELECTORS.mensajeConfirmacion);
+            if (mensaje) {
+                mensaje.textContent = `¿Deseas eliminar al profesor ${profesor.nombre}?`;
+            }
 
-    const toast = new bootstrap.Toast(toastContainer);
-    toast.show();
+            const modalElement = document.querySelector(SELECTORS.modalConfirmacion);
+            if (!modalElement) {
+                console.error('Modal de confirmación no encontrado');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+
+            // Configurar botón de confirmación
+            const btnConfirmar = document.querySelector(SELECTORS.btnConfirmar);
+            if (btnConfirmar) {
+                const nuevoBtn = btnConfirmar.cloneNode(true);
+                btnConfirmar.parentNode.replaceChild(nuevoBtn, btnConfirmar);
+                
+                nuevoBtn.addEventListener("click", async () => {
+                    try {
+                        await onConfirmar();
+                        modal.hide();
+                    } catch (error) {
+                        console.error('Error en confirmación:', error);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error mostrando modal de confirmación:', error);
+        }
+    }
+
+    static cerrarModal(modalSelector) {
+        try {
+            const modalElement = document.querySelector(modalSelector);
+            if (modalElement) {
+                // Remover focus de elementos activos antes de cerrar
+                const activeElement = modalElement.querySelector(':focus');
+                if (activeElement) {
+                    activeElement.blur();
+                }
+                
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        } catch (error) {
+            console.error('Error cerrando modal:', error);
+        }
+    }
+
+    static configurarEventosModal() {
+        // Manejar el focus cuando se abre un modal
+        const modales = document.querySelectorAll('.modal');
+        modales.forEach(modal => {
+            modal.addEventListener('show.bs.modal', () => {
+                // Remover focus del elemento que disparó el modal
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement !== document.body) {
+                    activeElement.blur();
+                }
+            });
+
+            modal.addEventListener('hidden.bs.modal', () => {
+                // Asegurar que no hay elementos con focus cuando se cierra
+                const focusedElements = modal.querySelectorAll(':focus');
+                focusedElements.forEach(el => el.blur());
+            });
+        });
+    }
+}
+
+// ==========================================
+// FUNCIÓN PRINCIPAL
+// ==========================================
+export function cargarCRUDModal(profesor) {
+    try {
+        const modalBody = document.querySelector(SELECTORS.modalBody);
+        if (!modalBody) {
+            console.error('Modal body no encontrado');
+            return;
+        }
+
+        modalBody.innerHTML = "";
+        window.profesorActual = profesor;
+
+        // Inicializar manejador de materias
+        const materiasManager = new MateriasManager(profesor);
+
+        // Crear card principal
+        const card = document.createElement("div");
+        card.className = "card border-start border-info border-4 shadow-lg p-4 position-relative";
+
+        // Manejador de eliminación de profesor
+        const manejarEliminacionProfesor = async (profesor) => {
+            ModalManager.mostrarConfirmacionEliminar(profesor, async () => {
+                try {
+                    await ApiManager.eliminarProfesor(profesor.nombre);
+                    
+                    // Actualizar localStorage de asignaciones
+                    let asignaciones = JSON.parse(localStorage.getItem("asignaciones")) || [];
+                    asignaciones = asignaciones.filter(p => p.nombre !== profesor.nombre);
+                    localStorage.setItem("asignaciones", JSON.stringify(asignaciones));
+
+                    ModalManager.cerrarModal(SELECTORS.modalEditar);
+                    Utils.mostrarToast(`✅ Profesor eliminado: ${profesor.nombre}`);
+                    await actualizarVista();
+                } catch (error) {
+                    alert("No se pudo eliminar el profesor. Revisa la consola.");
+                }
+            });
+        };
+
+        // Manejador de cambios en horario
+        const manejarCambioHorario = (campo, valor) => {
+            if (window.profesorActual) {
+                window.profesorActual[campo] = valor;
+                console.log(`${campo} actualizado localmente:`, valor);
+            }
+        };
+
+        // Crear componentes
+        const btnEliminar = UIComponents.crearBotonEliminarProfesor(profesor, manejarEliminacionProfesor);
+        const titulo = UIComponents.crearTituloProfesor(profesor);
+        const info = UIComponents.crearInfoProfesor(profesor);
+        const formularioHorario = UIComponents.crearFormularioHorario(profesor, manejarCambioHorario);
+
+        // Crear sección de materias
+        const materiasDiv = document.createElement("div");
+        materiasDiv.className = "m-1";
+
+        const tituloMaterias = document.createElement("p");
+        tituloMaterias.className = "fw-semibold m-0 text-center";
+        tituloMaterias.textContent = "Materias asignadas:";
+
+        const listaMaterias = document.createElement("ul");
+        listaMaterias.className = "list-group";
+        listaMaterias.id = "listaMaterias";
+
+        // Crear formulario para agregar materias
+        UIComponents.crearFormularioAgregarMateria((materiaBase) => {
+            materiasManager.agregarMateria(materiaBase);
+        }).then(formAgregarMateria => {
+            materiasDiv.appendChild(tituloMaterias);
+            materiasDiv.appendChild(listaMaterias);
+            materiasDiv.appendChild(formAgregarMateria);
+
+            // Configurar el contenedor de lista en el manejador
+            materiasManager.setListaContainer(listaMaterias);
+        });
+
+        // Ensamblar card
+        card.appendChild(btnEliminar);
+        card.appendChild(titulo);
+        card.appendChild(info);
+        card.appendChild(formularioHorario);
+        card.appendChild(materiasDiv);
+        modalBody.appendChild(card);
+
+        // Configurar manejador de guardado global
+        window.materiasManagerActual = materiasManager;
+
+    } catch (error) {
+        console.error('Error cargando CRUD modal:', error);
+        Utils.mostrarToast('Error cargando el modal de edición');
+    }
+}
+
+// ==========================================
+// EVENT LISTENERS GLOBALES
+// ==========================================
+window.addEventListener("DOMContentLoaded", () => {
+    LocalStorageManager.cleanupOnReload();
+    // Configurar eventos de modales para evitar problemas de aria-hidden
+    ModalManager.configurarEventosModal();
+});
+
+// Botón Guardar
+const btnGuardar = document.querySelector(SELECTORS.btnGuardar);
+if (btnGuardar) {
+    btnGuardar.addEventListener("click", async () => {
+        try {
+            // Remover focus del botón para evitar problemas de aria-hidden
+            btnGuardar.blur();
+            
+            if (window.materiasManagerActual && window.profesorActual) {
+                await window.materiasManagerActual.guardarCambios();
+                await actualizarVista();
+                ModalManager.cerrarModal(SELECTORS.modalEditar);
+                Utils.mostrarToast('✅ Cambios guardados exitosamente');
+            } else {
+                alert("No hay profesor seleccionado");
+            }
+        } catch (error) {
+            console.error('Error guardando cambios:', error);
+            Utils.mostrarToast('❌ Error al guardar cambios');
+        }
+    });
+}
+
+// Botón Cancelar
+const btnCancelar = document.querySelector(SELECTORS.btnCancelar);
+if (btnCancelar) {
+    btnCancelar.addEventListener("click", () => {
+        // Remover focus del botón para evitar problemas de aria-hidden
+        btnCancelar.blur();
+        
+        if (window.profesorActual?.nombre) {
+            LocalStorageManager.removeMaterias(window.profesorActual.nombre);
+        }
+    });
+}
+
+// Limpiar localStorage al cerrar modal
+const modalEditar = document.querySelector(SELECTORS.modalEditar);
+if (modalEditar) {
+    modalEditar.addEventListener("hidden.bs.modal", () => {
+        if (window.profesorActual?.nombre) {
+            LocalStorageManager.removeMaterias(window.profesorActual.nombre);
+        }
+        // Limpiar referencias globales
+        window.profesorActual = null;
+        window.materiasManagerActual = null;
+        
+        // Asegurar que no hay elementos con focus
+        const focusedElements = modalEditar.querySelectorAll(':focus');
+        focusedElements.forEach(el => el.blur());
+    });
 }

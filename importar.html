@@ -131,101 +131,150 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Inicializa referencias a modal y toast (debe existir en tu HTML)
-            const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
-            const modalPeriodoText = document.getElementById('modalPeriodo');
-            const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-            const deleteToast = new bootstrap.Toast(document.getElementById('deleteToast'));
+    // Inicializa referencias a modal y toast (debe existir en tu HTML)
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    const modalPeriodoText = document.getElementById('modalPeriodo');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const deleteToast = new bootstrap.Toast(document.getElementById('deleteToast'));
 
-            async function cargarPeriodosDesdeServidor() {
-                try {
-                    const res = await fetch('https://cabadath.duckdns.org/api/archivos/periodos');
-                    const data = await res.json();
+    // Función para mostrar estado de carga
+    function mostrarCargando() {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = `
+            <li class="list-group-item text-center text-muted">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Cargando...
+                </div>
+            </li>
+        `;
+    }
 
-                    const fileList = document.getElementById('fileList');
-                    fileList.innerHTML = ''; // Limpia la lista
+    // Función para mostrar cuando no hay archivos
+    function mostrarSinArchivos() {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = `
+            <li class="list-group-item text-center text-muted">
+                <i class="bx bx-file me-2"></i>
+                No hay archivos cargados
+            </li>
+        `;
+    }
 
-                    data.periodos.forEach(periodo => {
-                        const li = document.createElement('li');
-                        li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+    async function cargarPeriodosDesdeServidor() {
+        // Mostrar estado de carga mientras se hace la petición
+        mostrarCargando();
+        
+        try {
+            const res = await fetch('https://cabadath.duckdns.org/api/archivos/periodos');
+            const data = await res.json();
 
-                        // Texto del archivo
-                        const span = document.createElement('span');
-                        span.textContent = `Archivo: ${periodo}`;
-                        li.appendChild(span);
-
-                        // Contenedor para badge + botón
-                        const controlsDiv = document.createElement('div');
-                        controlsDiv.classList.add('d-flex', 'align-items-center', 'gap-2'); // gap para espacio entre badge y botón
-
-                        // Si es el periodo actual, agregamos badge
-                        if (periodo === data.periodo_actual) {
-                            const badge = document.createElement('span');
-                            badge.classList.add('badge', 'bg-success');
-                            badge.textContent = 'Actual';
-                            controlsDiv.appendChild(badge);
-                        }
-
-                        // Botón eliminar
-                        const btnEliminar = document.createElement('button');
-                        btnEliminar.classList.add('btn', 'btn-sm', 'btn-danger');
-                        btnEliminar.innerHTML = '<i class="bx bx-trash"></i>';
-                        btnEliminar.title = "Eliminar periodo";
-
-                        // Aquí va la lógica de btnEliminar.onclick (igual que antes)
-                        btnEliminar.onclick = () => {
-                            modalPeriodoText.textContent = periodo;
-                            confirmModal.show();
-
-                            modalConfirmBtn.replaceWith(modalConfirmBtn.cloneNode(true));
-                            const newConfirmBtn = document.getElementById('modalConfirmBtn');
-
-                            newConfirmBtn.onclick = async () => {
-                                try {
-                                    const deleteRes = await fetch(`https://cabadath.duckdns.org/api/archivos/eliminar-periodo/${encodeURIComponent(periodo)}`, {
-                                        method: 'DELETE'
-                                    });
-                                    if (!deleteRes.ok) throw new Error('Error al eliminar');
-
-                                    confirmModal.hide();
-                                    deleteToast.show();
-                                    cargarPeriodosDesdeServidor();
-                                } catch (error) {
-                                    alert('Error eliminando periodo: ' + error.message);
-                                }
-                            };
-                        };
-
-                        controlsDiv.appendChild(btnEliminar);
-
-                        li.appendChild(controlsDiv);
-                        fileList.appendChild(li);
-                    });
-                } catch (error) {
-                    console.error('Error al cargar periodos:', error);
-                }
+            const fileList = document.getElementById('fileList');
+            
+            // Si no hay periodos, mostrar mensaje correspondiente
+            if (!data.periodos || data.periodos.length === 0) {
+                mostrarSinArchivos();
+                return;
             }
 
-            // Llama la función para cargar periodos al inicio
-            cargarPeriodosDesdeServidor();
+            // Limpiar la lista y cargar los periodos
+            fileList.innerHTML = '';
 
-            // Escucha el envío del formulario para subir CSV
-            document.getElementById('csvForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
+            data.periodos.forEach(periodo => {
+                const li = document.createElement('li');
+                li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
 
-                const res = await fetch('https://cabadath.duckdns.org/api/archivos/subir-csv', {
-                    method: 'POST',
-                    body: formData
-                });
+                // Texto del archivo
+                const span = document.createElement('span');
+                span.textContent = `Archivo: ${periodo}`;
+                li.appendChild(span);
 
-                const result = await res.json();
-                console.log(result);
+                // Contenedor para badge + botón
+                const controlsDiv = document.createElement('div');
+                controlsDiv.classList.add('d-flex', 'align-items-center', 'gap-2'); // gap para espacio entre badge y botón
 
-                // Actualiza la lista de periodos después de subir
-                cargarPeriodosDesdeServidor();
+                // Si es el periodo actual, agregamos badge
+                if (periodo === data.periodo_actual) {
+                    const badge = document.createElement('span');
+                    badge.classList.add('badge', 'bg-success');
+                    badge.textContent = 'Actual';
+                    controlsDiv.appendChild(badge);
+                }
+
+                // Botón eliminar
+                const btnEliminar = document.createElement('button');
+                btnEliminar.classList.add('btn', 'btn-sm', 'btn-danger');
+                btnEliminar.innerHTML = '<i class="bx bx-trash"></i>';
+                btnEliminar.title = "Eliminar periodo";
+
+                // Lógica del botón eliminar
+                btnEliminar.onclick = () => {
+                    modalPeriodoText.textContent = periodo;
+                    confirmModal.show();
+
+                    modalConfirmBtn.replaceWith(modalConfirmBtn.cloneNode(true));
+                    const newConfirmBtn = document.getElementById('modalConfirmBtn');
+
+                    newConfirmBtn.onclick = async () => {
+                        try {
+                            const deleteRes = await fetch(`https://cabadath.duckdns.org/api/archivos/eliminar-periodo/${encodeURIComponent(periodo)}`, {
+                                method: 'DELETE'
+                            });
+                            if (!deleteRes.ok) throw new Error('Error al eliminar');
+
+                            confirmModal.hide();
+                            deleteToast.show();
+                            cargarPeriodosDesdeServidor();
+                        } catch (error) {
+                            alert('Error eliminando periodo: ' + error.message);
+                        }
+                    };
+                };
+
+                controlsDiv.appendChild(btnEliminar);
+                li.appendChild(controlsDiv);
+                fileList.appendChild(li);
             });
-        });
+        } catch (error) {
+            console.error('Error al cargar periodos:', error);
+            // En caso de error, mostrar mensaje de error
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = `
+                <li class="list-group-item text-center text-danger">
+                    <i class="bx bx-error me-2"></i>
+                    Error al cargar los archivos
+                </li>
+            `;
+        }
+    }
+
+    // Llama la función para cargar periodos al inicio
+    cargarPeriodosDesdeServidor();
+
+    // Escucha el envío del formulario para subir CSV
+    document.getElementById('csvForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        try {
+            const res = await fetch('https://cabadath.duckdns.org/api/archivos/subir-csv', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await res.json();
+            console.log(result);
+
+            // Actualiza la lista de periodos después de subir
+            cargarPeriodosDesdeServidor();
+        } catch (error) {
+            console.error('Error al subir archivo:', error);
+            alert('Error al subir el archivo');
+        }
+    });
+});
     </script>
 
     <!-- Modal Confirmación -->

@@ -14,20 +14,6 @@ import { cargarCRUDModal } from './tarjetaModificar.js';
 export const filaTarjetas = createElementWithClass("div", "row gy-3");
 filaTarjetas.id = "profesorList";
 
-// ACTUALIZAR TARJETAS USANDO btnGuardar en tarjetaModificar.js
-export async function actualizarVista() {
-    try {
-        const resp = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignaciones");
-        if (!resp.ok) throw new Error("Error al obtener asignaciones");
-
-        const datos = await resp.json();
-        localStorage.setItem("asignaciones", JSON.stringify(datos));
-        renderizarTarjetas(datos);
-        actualizarTotalProfesores();
-    } catch (error) {
-        console.error("Error actualizando vista:", error);
-    }
-}
 
 export function renderizarTarjetas(datos) {
     filaTarjetas.innerHTML = "";
@@ -113,8 +99,55 @@ export function createElementWithClass(tag, className = "", styleObj = {}) {
     return el;
 }
 
-// ✅ Código principal al cargar la página
-document.addEventListener("DOMContentLoaded", () => {
+// ✅ Función para cargar datos iniciales
+async function cargarDatosIniciales() {
+    try {
+        // 1. Primero intentar cargar desde localStorage
+        const datosGuardados = localStorage.getItem("asignaciones");
+        
+        if (datosGuardados) {
+            const datos = JSON.parse(datosGuardados);
+            if (datos && datos.length > 0) {
+                console.log("Cargando datos desde localStorage");
+                renderizarTarjetas(datos);
+                actualizarTotalProfesores();
+                return; // Si hay datos en localStorage, terminar aquí
+            }
+        }
+
+        // 2. Si no hay datos en localStorage, intentar cargar desde /asignaciones
+        console.log("No hay datos en localStorage, intentando cargar desde /asignaciones");
+        const resp = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignaciones");
+        
+        if (!resp.ok) {
+            console.log("No hay asignaciones disponibles en el servidor");
+            return; // No hay datos disponibles, mostrar vista vacía
+        }
+
+        const datos = await resp.json();
+        
+        if (datos && datos.length > 0) {
+            console.log("Datos cargados desde /asignaciones:", datos.length, "profesores");
+            
+            // Guardar en localStorage para futuras cargas
+            localStorage.setItem("asignaciones", JSON.stringify(datos));
+            
+            // Renderizar las tarjetas
+            renderizarTarjetas(datos);
+            actualizarTotalProfesores();
+        } else {
+            console.log("No hay asignaciones disponibles");
+        }
+        
+    } catch (error) {
+        console.error("Error al cargar datos iniciales:", error);
+        // En caso de error, mostrar vista vacía sin errores molestos al usuario
+    }
+}
+
+// ✅ Código principal al cargar la página - MEJORADO
+document.addEventListener("DOMContentLoaded", async () => {
+    // Mostrar estadísticas desde storage inmediatamente (si existen)
     mostrarProfesoresDesdeStorage();
 
     const btnAsignar = document.querySelector(".btn.btn-info");
@@ -130,12 +163,40 @@ document.addEventListener("DOMContentLoaded", () => {
     cardBodyScrollable.appendChild(filaTarjetas);
     contenedorAsignaciones?.appendChild(cardBodyScrollable);
 
-    const datosGuardados = localStorage.getItem("asignaciones");
-    if (datosGuardados) renderizarTarjetas(JSON.parse(datosGuardados));
+    // Cargar datos iniciales (verifica localStorage y luego /asignaciones)
+    await cargarDatosIniciales();
 
+    // Event listeners
     btnAsignar?.addEventListener("click", asignarMaterias);
     inputBusqueda?.addEventListener("input", filtrarTarjetas);
 });
+
+// ✅ Función actualizarVista mejorada (para usar después de asignar)
+export async function actualizarVista() {
+    try {
+        console.log("Actualizando vista desde /asignaciones...");
+        const resp = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignaciones");
+        
+        if (!resp.ok) {
+            throw new Error(`Error ${resp.status} al obtener asignaciones`);
+        }
+
+        const datos = await resp.json();
+        
+        // Guardar en localStorage
+        localStorage.setItem("asignaciones", JSON.stringify(datos));
+        
+        // Renderizar tarjetas
+        renderizarTarjetas(datos);
+        actualizarTotalProfesores();
+        
+        console.log("Vista actualizada correctamente:", datos.length, "profesores");
+        
+    } catch (error) {
+        console.error("Error actualizando vista:", error);
+        throw error; // Re-lanzar el error para que lo maneje asignarMaterias()
+    }
+}
 
 async function asignarMaterias() {
     const seleccionados = Array.from(document.querySelectorAll('input[name="archivos"]:checked'))
@@ -147,21 +208,87 @@ async function asignarMaterias() {
     }
 
     try {
-        const res = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignar", {
+        // 1. Realizar la asignación inicial
+        console.log("Iniciando asignación de materias...");
+        const resAsignacion = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ periodos: seleccionados })
         });
 
-        if (!res.ok) throw new Error("Error al asignar materias");
-        const datos = await res.json();
-        console.log(datos);
+        if (!resAsignacion.ok) throw new Error("Error al asignar materias");
+        
+        // 2. Verificar discrepancias usando estadísticas
+        console.log("Obteniendo estadísticas y verificando discrepancias...");
+        const resEstadisticas = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/estadisticas");
+        
+        if (!resEstadisticas.ok) {
+            console.warn("No se pudieron obtener las estadísticas, continuando con la vista normal");
+            await actualizarVista();
+            return;
+        }
 
-        localStorage.setItem("asignaciones", JSON.stringify(datos));
-        renderizarTarjetas(datos);
-        actualizarTotalProfesores();
+        const estadisticas = await resEstadisticas.json();
+        console.log("Estadísticas obtenidas:", estadisticas);
+
+        // 3. Si hay discrepancias, intentar reasignar individualmente
+        if (estadisticas.success && estadisticas.discrepancias && estadisticas.discrepancias.length > 0) {
+            console.log(`Se encontraron ${estadisticas.discrepancias.length} maestros con discrepancias. Intentando reasignar...`);
+            
+            // Procesar cada maestro con discrepancias
+            for (const maestro of estadisticas.discrepancias) {
+                try {
+                    // Omitir maestros con nombre "_" (datos incompletos)
+                    if (maestro.nombre === "_") {
+                        console.log("Omitiendo maestro con nombre '_' (datos incompletos)");
+                        continue;
+                    }
+
+                    console.log(`Reasignando maestro: ${maestro.nombre} (Diferencia: ${maestro.diferencia})`);
+                    
+                    // Estructura correcta para la API asignar-individual
+                    const payload = {
+                        nombre_profesor: maestro.nombre,
+                        tolerancia: 5,
+                        max_combinaciones: 500
+                    };
+
+                    console.log("Enviando payload:", payload);
+
+                    const resReasignacion = await fetch("https://cabadath.duckdns.org/api/asignacion-materias/asignar-individual", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!resReasignacion.ok) {
+                        const errorText = await resReasignacion.text();
+                        console.error(`Error ${resReasignacion.status} para ${maestro.nombre}:`, errorText);
+                        throw new Error(`HTTP ${resReasignacion.status}: ${errorText}`);
+                    }
+
+                    if (resReasignacion.ok) {
+                        const resultado = await resReasignacion.json();
+                        console.log(`✅ Maestro ${maestro.nombre} reasignado correctamente:`, resultado);
+                    }
+                } catch (errorIndividual) {
+                    console.error(`❌ Error al reasignar maestro ${maestro.nombre}:`, errorIndividual);
+                }
+            }
+            
+            console.log("Proceso de reasignación completado. Actualizando vista...");
+            
+            console.log("Proceso de reasignación completado. Actualizando vista...");
+        } else {
+            console.log("No se encontraron discrepancias en las estadísticas.");
+        }
+
+        // 4. Actualizar la vista final con los datos corregidos
+        await actualizarVista();
+        console.log("Vista actualizada correctamente.");
+
     } catch (error) {
-        console.error("Error al asignar materias:", error);
-        alert("Ocurrió un error al asignar materias.");
+        console.error("Error en el proceso de asignación:", error);
+        alert("Ocurrió un error al asignar materias: " + error.message);
     }
 }

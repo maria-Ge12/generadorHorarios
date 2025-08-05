@@ -136,12 +136,13 @@
                                     <th>Hora salida</th>
                                     <th>Materias</th>
                                     <th>Periodo</th>
+                                    <th>Carreras</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td colspan="7" class="text-center">Cargando datos...</td>
+                                    <td colspan="8" class="text-center">Cargando datos...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -178,18 +179,25 @@
                                 </div>
                             </div>
 
-                            <div class="row g-3 mb-2">
-                                <div class="col-12 col-md-4">
+                            <div class="row g-2 mb-2">
+                                <div class="col-12 col-md-6">
                                     <label for="horaEntrada" class="form-label fw-semibold">Hora de Entrada</label>
                                     <input type="time" class="form-control form-control-sm" id="horaEntrada" required>
                                 </div>
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-6">
                                     <label for="horaSalida" class="form-label fw-semibold">Hora de Salida</label>
                                     <input type="time" class="form-control form-control-sm" id="horaSalida" required>
                                 </div>
-                                <div class="col-12 col-md-4">
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-12 col-md-6">
                                     <label for="periodo" class="form-label fw-semibold">Periodo</label>
                                     <input type="text" class="form-control" id="periodo" placeholder="Ej. ENE-JUN 25"
+                                        required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label for="carreras" class="form-label fw-semibold">Carreras</label>
+                                    <input type="text" class="form-control" id="carreras" placeholder="Ej. IADM,IGE,IIND,ISC"
                                         required>
                                 </div>
                             </div>
@@ -260,21 +268,28 @@
                                 </div>
                             </div>
 
-                            <div class="row g-3 mb-3">
-                                <div class="col-12 col-md-4">
+                            <div class="row g-3 mb-2">
+                                <div class="col-12 col-md-6">
                                     <label for="editarHoraEntrada" class="form-label fw-semibold">Hora de
                                         Entrada</label>
                                     <input type="time" class="form-control form-control-sm" id="editarHoraEntrada"
                                         required>
                                 </div>
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-6">
                                     <label for="editarHoraSalida" class="form-label fw-semibold">Hora de Salida</label>
                                     <input type="time" class="form-control form-control-sm" id="editarHoraSalida"
                                         required>
                                 </div>
-                                <div class="col-12 col-md-4">
+                            </div>
+                            <div class="row g-3 mb-2">
+                                <div class="col-12 col-md-6">
                                     <label for="editarPeriodo" class="form-label fw-semibold">Periodo</label>
                                     <input type="text" class="form-control" id="editarPeriodo" placeholder="Ej. 2024-A"
+                                        required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label for="editarCarreras" class="form-label fw-semibold">Carreras</label>
+                                    <input type="text" class="form-control" id="editarCarreras" placeholder="Ej. IADM,IGE,IIND,ISC"
                                         required>
                                 </div>
                             </div>

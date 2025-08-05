@@ -24,6 +24,15 @@ function agregarMateriaALista(materia, listaElement, materiasArray) {
     listaElement.appendChild(li);
 }
 
+// Función para procesar carreras del input
+function procesarCarreras(carrerasString) {
+    if (!carrerasString.trim()) return [];
+    return carrerasString
+        .split(',')
+        .map(carrera => carrera.trim().toUpperCase())
+        .filter(carrera => carrera.length > 0);
+}
+
 // TABLA GENERAL
 function cargarTablaProfesores() {
     fetch("https://cabadath.duckdns.org/api/crud/profesores/profesores")
@@ -36,7 +45,9 @@ function cargarTablaProfesores() {
 
             data.forEach((profesor, index) => {
                 const materiasList = profesor.materias ?? [];
+                const carrerasList = profesor.carreras ?? [];
                 const tooltipMaterias = materiasList.join("\n");
+                const carrerasTexto = Array.isArray(carrerasList) ? carrerasList.join(", ") : (carrerasList || '-');
 
                 const fila = document.createElement("tr");
                 fila.innerHTML = `
@@ -46,6 +57,7 @@ function cargarTablaProfesores() {
           <td>${profesor.hora_salida ?? '-'}</td>
           <td title="${tooltipMaterias}">${materiasList.length} materia${materiasList.length !== 1 ? 's' : ''}</td>
           <td>${profesor.periodo ?? '-'}</td>
+          <td>${carrerasTexto}</td>
           <td class="text-center">
             <button class="btn btn-sm btn-info me-2 btn-editar"><i class="fa-solid fa-pen"></i></button>
             <button class="btn btn-sm btn-danger btn-eliminar"><i class="fa-solid fa-trash"></i></button>
@@ -64,6 +76,11 @@ function cargarTablaProfesores() {
                     document.getElementById("editarHoraEntrada").value = profesor.hora_entrada;
                     document.getElementById("editarHoraSalida").value = profesor.hora_salida;
                     document.getElementById("editarPeriodo").value = profesor.periodo;
+                    
+                    // Llenar campo carreras
+                    const carrerasArray = profesor.carreras ?? [];
+                    const carrerasTexto = Array.isArray(carrerasArray) ? carrerasArray.join(", ") : (carrerasArray || "");
+                    document.getElementById("editarCarreras").value = carrerasTexto;
 
                     const lista = document.getElementById("editarListaMaterias");
                     lista.innerHTML = "";
@@ -103,7 +120,7 @@ document.getElementById("btnConfirmarEliminar").addEventListener("click", () => 
 
     const nombreEncoded = encodeURIComponent(profesorNombreAEliminar);
 
-    fetch(`https://cabadath.duckdns.org/api/crud/profesores/profesores/${nombreEncoded}/eliminar`, {
+    fetch(`https://cabadath.duckdns.org/api/crud/profesores/profesores/elimina/${nombreEncoded}`, {
         method: "DELETE"
     })
         .then(response => {
@@ -147,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const listaMateriasEditar = document.getElementById("editarListaMaterias");
 
     // Cargar materias desde API (solo llena el select)
-    fetch("http://74.208.77.56:5480/asignaturas")
+    fetch("https://cabadath.duckdns.org/api/archivos/asignaturas")
         .then(res => res.json())
         .then(data => {
             data.forEach(item => {
@@ -174,97 +191,83 @@ document.addEventListener("DOMContentLoaded", () => {
         agregarMateriaALista(materiaSeleccionada, listaMateriasEditar, materiasAgregadas);
         selectMateriaEditar.value = "";
     });
+
+    // NUEVO FORMULARIO DE EDICIÓN CON UNA SOLA API
     document.getElementById("formEditarProfesor").addEventListener("submit", async function (event) {
         event.preventDefault(); // evitar recarga
 
         console.log("Inicio del guardado de cambios...");
 
-        const nombreOriginal = nombreProfesorOriginal; // asumiendo variable global
+        const nombreOriginal = nombreProfesorOriginal;
         const nuevoNombre = document.getElementById("editarNombreProfesor").value.trim();
         const horasAsignadas = parseInt(document.getElementById("editarHorasAsignadas").value, 10);
         const horaEntrada = document.getElementById("editarHoraEntrada").value;
         const horaSalida = document.getElementById("editarHoraSalida").value;
         const periodo = document.getElementById("editarPeriodo").value.trim();
+        const carrerasInput = document.getElementById("editarCarreras").value.trim();
         const materias = materiasAgregadas;
 
-        console.log("Nombre original:", nombreOriginal);
-        console.log("Nuevo nombre:", nuevoNombre);
+        // Procesar carreras
+        const carreras = procesarCarreras(carrerasInput);
+        if (carreras.length === 0) {
+            mostrarToastWarning("Por favor ingresa al menos una carrera.");
+            return;
+        }
+
+        // Validar todos los campos
+        if (!nuevoNombre || isNaN(horasAsignadas) || !horaEntrada || !horaSalida || !periodo || materias.length === 0) {
+            mostrarToastWarning("Por favor completa todos los campos y agrega al menos una materia.");
+            return;
+        }
+
+        // Crear objeto para la nueva API
+        const profesorActualizado = {
+            nombre: nuevoNombre,
+            horas_asignadas: horasAsignadas,
+            hora_entrada: horaEntrada,
+            hora_salida: horaSalida,
+            materias: materias,
+            carreras: carreras,
+            periodo: periodo
+        };
+
+        console.log("Datos a enviar:", profesorActualizado);
 
         try {
-            // Cambiar nombre si es diferente
-            if (nuevoNombre !== nombreOriginal) {
-                console.log("Modificando nombre...");
-                const urlNombre = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nombreOriginal)}/nombre?nuevo_nombre=${encodeURIComponent(nuevoNombre)}`;
-                const respNombre = await fetch(urlNombre, { method: "PUT" });
-                if (!respNombre.ok) throw new Error("Error al modificar el nombre.");
-                console.log("Nombre modificado correctamente.");
-            } else {
-                console.log("El nombre no cambió, no se modifica.");
+            // Usar la nueva API de actualización completa
+            const urlActualizar = `https://cabadath.duckdns.org/api/crud/profesores/profesores/actualizar/${encodeURIComponent(nombreOriginal)}`;
+            const respuesta = await fetch(urlActualizar, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(profesorActualizado)
+            });
+
+            if (!respuesta.ok) {
+                const errorText = await respuesta.text();
+                throw new Error(`Error ${respuesta.status}: ${errorText}`);
             }
 
-            // Modificar horas asignadas
-            console.log("Modificando horas asignadas...");
-            const urlHoras = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/horas?horas_asignadas=${encodeURIComponent(horasAsignadas)}`;
-            const respHoras = await fetch(urlHoras, {
-                method: "PUT"
-            });
-
-            if (!respHoras.ok) throw new Error("Error al modificar las horas asignadas.");
-            console.log("Horas asignadas modificadas correctamente.");
-
-            // Modificar horario entrada/salida
-            console.log("Modificando horario...");
-            const urlHorario = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/horario`;
-            const respHorario = await fetch(urlHorario, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ hora_entrada: horaEntrada, hora_salida: horaSalida })
-            });
-            if (!respHorario.ok) throw new Error("Error al modificar el horario.");
-            console.log("Horario modificado correctamente.");
-
-            // Modificar periodo
-            console.log("Modificando periodo...");
-            const urlPeriodo = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/periodo?periodo=${encodeURIComponent(periodo)}`;
-            const respPeriodo = await fetch(urlPeriodo, {
-                method: "PUT"
-            });
-
-            if (!respPeriodo.ok) throw new Error("Error al modificar el periodo.");
-            console.log("Periodo modificado correctamente.");
-
-
-            // Reemplazar materias
-            console.log("Reemplazando materias...");
-            const urlMaterias = `https://cabadath.duckdns.org/api/crud/profesores/profesores/${encodeURIComponent(nuevoNombre)}/materias/reemplazar`;
-            const respMaterias = await fetch(urlMaterias, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(materias) // asegúrate que sea un array de strings
-            });
-
-            if (!respMaterias.ok) throw new Error("Error al modificar las materias.");
-            console.log("Materias reemplazadas correctamente.");
-
-
-            console.log("Todos los cambios se guardaron correctamente.");
+            console.log("Profesor actualizado correctamente.");
             mostrarToast("Profesor actualizado correctamente.");
             bootstrap.Modal.getInstance(document.getElementById("modalEditarProfesor")).hide();
             cargarTablaProfesores();
 
         } catch (error) {
-            console.error("Error al guardar cambios:", error);
-            mostrarToastWarning("Error al guardar los cambios. Intenta de nuevo.");
+            console.error("Error al actualizar profesor:", error);
+            mostrarToastWarning(`Error al actualizar el profesor: ${error.message}`);
         }
     });
 });
 
-// mayusculas el nombre y periodo
+// mayusculas el nombre, periodo y carreras
 document.getElementById('editarNombreProfesor').addEventListener('input', function () {
-    this.value = this.value.toUpperCase().replace(/[^A-ZÁÉÍÓÚÜÑ\s]/g, '');
+    this.value = this.value.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi, '').toUpperCase();
 });
 document.getElementById('editarPeriodo').addEventListener('input', function () {
     this.value = this.value.toUpperCase();
+});
+document.getElementById('editarCarreras').addEventListener('input', function () {
+    this.value = this.value.replace(/[^A-ZÁÉÍÓÚÑ,\s]/gi, '').toUpperCase();
 });
 
 cargarTablaProfesores(); // Carga inicial

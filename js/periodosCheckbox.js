@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!Array.isArray(periodos) || periodos.length === 0) {
-      contenedor.innerHTML = `<p class="text-muted text-center">No hay periodos disponibles</p>`;
+      contenedor.innerHTML = `<p class="text-muted text-center">No hay periodos disponibles, cargue un archivo</p>`;
       return;
     }
 

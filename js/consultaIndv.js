@@ -1,5 +1,5 @@
 /*
-  Este muestra el horario detallado de un profesor obtenido desde la API '/asignaciones',
+  Este muestra los datos de un profesor obtenido desde la API '/asignaciones',
   usando su nombre desde la URL como parámetro.
 
   Visual: muestra el nombre del profesor, periodo, horas, entrada/salida, y una lista de materias con créditos.

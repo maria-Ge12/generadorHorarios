@@ -23,7 +23,7 @@ export async function actualizarTotalProfesores() {
     }
   } catch (error) {
     console.error("Error al obtener estadísticas:", error);
-    h6.textContent = "Error al cargar datos";
+    h6.textContent = "Profesores asignados: 0";
   }
 }
 

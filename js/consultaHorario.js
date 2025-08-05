@@ -1,3 +1,6 @@
+// ==========================================
+// HORARIO ASIGNADO EN TABLA DE CADA PROFESOR usando la api /horarios
+// ==========================================
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const nombreProfesor = params.get("nombre");
@@ -13,126 +16,127 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  function normalizeString(str) {
-    return str
+  // Utilidades
+  const utils = {
+    normalizeString: (str) => str
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s+/g, " ")
-      .trim();
-  }
+      .trim(),
 
-  function buscarMateriaPorHora(horarioDia, hora) {
-    if (!horarioDia) return "";
+    buscarMateriaPorHora: (horarioDia, hora) => {
+      if (!horarioDia) return "";
+      
+      if (horarioDia[hora]) return horarioDia[hora];
+      
+      const key = Object.keys(horarioDia).find(k => 
+        k.replace(/\s+/g, "") === hora.replace(/\s+/g, "")
+      );
+      return key ? horarioDia[key] : "";
+    },
 
-    if (horarioDia[hora]) return horarioDia[hora];
+    generarHoras: (inicio, fin) => {
+      const horas = [];
+      let [h] = inicio.split(":").map(Number);
+      const [fh] = fin.split(":").map(Number);
 
-    const key = Object.keys(horarioDia).find(k => k.replace(/\s+/g, "") === hora.replace(/\s+/g, ""));
-    return key ? horarioDia[key] : "";
-  }
+      while (h < fh) {
+        horas.push(`${h.toString().padStart(2, "0")}:00 - ${(h + 1).toString().padStart(2, "0")}:00`);
+        h++;
+      }
+      return horas;
+    },
 
-  // Colores para materias (sin repetir)
-  const colores = [
-    "#007bff", // azul
-    "#dc3545", // rojo
-    "#fd7e14", // naranja
-    "#198754", // verde
-    "#d63384", // rosa
-    "#6f42c1", // morado
-    "#ffc107", // amarillo
+    hexToRgba: (hex, alpha = 0.15) => {
+      const bigint = parseInt(hex.replace("#", ""), 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    },
+
+    mostrarError: (mensaje) => {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${mensaje}</td></tr>`;
+    }
+  };
+
+  // Configuración
+  const COLORES = [
+    "#007bff", "#dc3545", "#6f42c1", "#ffc107", 
+    "#198754", "#d63384", "#fd7e14"
   ];
+  const DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes"];
 
   try {
-    const response = await fetch("https://cabadath.duckdns.org/api/generar-horarios/horarios", {
-      method: "GET"
-    });
+    const response = await fetch(
+      "https://cabadath.duckdns.org/api/generar-horarios/horarios",
+      { method: "GET" }
+    );
 
     if (!response.ok) throw new Error("Error en la respuesta de la API");
 
-    const data = await response.json();
-    console.log("Datos recibidos de la API:", data);
-
-    const profesores = data.horarios || [];
-
-    const nombreBuscado = normalizeString(nombreProfesor);
-
-    const profesor = profesores.find(p => normalizeString(p.nombre) === nombreBuscado);
+    const { horarios = [] } = await response.json();
+    const nombreBuscado = utils.normalizeString(nombreProfesor);
+    
+    const profesor = horarios.find(p => 
+      utils.normalizeString(p.nombre) === nombreBuscado
+    );
 
     if (!profesor) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">No se encontró el horario del profesor</td></tr>`;
+      utils.mostrarError("No se encontró el horario del profesor");
       return;
     }
 
-    const horas = generarHoras(profesor.hora_entrada, profesor.hora_salida);
-    const dias = ["lunes", "martes", "miércoles", "jueves", "viernes"];
-
-    tbody.innerHTML = "";
-
+    // Generar tabla
+    const horas = utils.generarHoras(profesor.hora_entrada, profesor.hora_salida);
     const materiaColorMap = new Map();
     let colorIndex = 0;
 
+    const fragment = document.createDocumentFragment();
+    
     horas.forEach(hora => {
       const tr = document.createElement("tr");
-
+      
+      // Celda de hora
       const tdHora = document.createElement("td");
       tdHora.textContent = hora;
       tr.appendChild(tdHora);
 
-      dias.forEach(dia => {
+      // Celdas de días
+      DIAS.forEach(dia => {
         const td = document.createElement("td");
-        const materia = buscarMateriaPorHora(profesor.horario?.[dia], hora) || "";
-        td.textContent = materia;
-
+        const materia = utils.buscarMateriaPorHora(profesor.horario?.[dia], hora);
+        
         if (materia) {
-          // Asignar color a la materia si no tiene
+          td.textContent = materia;
+          
+          // Asignar color único por materia
           if (!materiaColorMap.has(materia)) {
-            materiaColorMap.set(materia, colores[colorIndex % colores.length]);
+            materiaColorMap.set(materia, COLORES[colorIndex % COLORES.length]);
             colorIndex++;
           }
+          
           const color = materiaColorMap.get(materia);
-
+          Object.assign(td.style, {
+            backgroundColor: utils.hexToRgba(color),
+            color: "#111",
+            fontWeight: "500"
+          });
           td.classList.add("materia");
-          td.style.backgroundColor = hexToRgba(color, 0.15);
-          td.style.color = "#111";
-          td.style.fontWeight = "500";
         }
-
+        
         tr.appendChild(td);
       });
 
-      tbody.appendChild(tr);
+      fragment.appendChild(tr);
     });
+
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
 
   } catch (error) {
     console.error("Error al obtener horario:", error);
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error al cargar el horario</td></tr>`;
+    utils.mostrarError("Error al cargar el horario");
   }
 });
-
-function generarHoras(inicio, fin) {
-  const horas = [];
-  let [h, m] = inicio.split(":").map(Number);
-  const [fh, fm] = fin.split(":").map(Number);
-
-  while (h < fh || (h === fh && m < fm)) {
-    const siguienteHora = h + 1;
-    const rango = `${formatearHora(h)}:00 - ${formatearHora(siguienteHora)}:00`;
-    horas.push(rango);
-    h++;
-  }
-
-  return horas;
-}
-
-function formatearHora(hora) {
-  return hora.toString().padStart(2, "0");
-}
-
-function hexToRgba(hex, alpha = 1) {
-  const bigint = parseInt(hex.replace("#", ""), 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
