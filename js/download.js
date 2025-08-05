@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnDescargar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Descargando...';
 
     try {
-      const response = await fetch(`http://74.208.77.56:5480/download/${tipoSeleccionado}`);
+      const response = await fetch(`https://cabadath.duckdns.org/api/archivos/download/${tipoSeleccionado}`);
       
       if (!response.ok) {
         throw new Error(`Error en la descarga: ${response.status} ${response.statusText}`);
