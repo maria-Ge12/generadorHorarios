@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const contentType = response.headers.get('content-type');
       
       // Determinar extensión del archivo
-      let extension = 'txt';
+      let extension = 'xlsx';
       if (contentType?.includes('json')) extension = 'json';
       else if (contentType?.includes('csv')) extension = 'csv';
 
