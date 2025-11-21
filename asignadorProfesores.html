@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="Navbar/navbarStyle.css" />
+    <style>
+        .bg-azul-personalizado {
+            background-color: #0056b3 !important;
+        }
+
+        /* ---- Estilos modernos ---- */
+        .card-archivos {
+            width: 100%;
+            border-radius: 14px;
+            border-left: 6px solid #36a2eb;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            background: #ffffff;
+        }
+
+        .archivo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: #f8faff;
+            border: 1px solid #e3e9f5;
+            margin-bottom: 4px;
+        }
+
+        .archivo-item:hover {
+            background: #e9f3ff;
+        }
+
+        .download-btn {
+            background: #36a2eb;
+            border: none;
+            padding: 4px 8px;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .download-btn:hover {
+            background: #1f8bd6;
+        }
+
+        /* ---- Spinner bonito ---- */
+        .spinner {
+            border: 4px solid #e3e9f5;
+            border-top: 4px solid #36a2eb;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 0.9s linear infinite;
+            margin: 12px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            animation: fadeInScale .25s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar-expanded d-flex flex-column">
+        <button class="btn btn-toggle m-2 align-self-start" id="toggleMenu">
+            <lord-icon src="https://cdn.lordicon.com/jectmwqf.json" trigger="click" delay="1500" stroke="bold"
+                colors="primary:#9ce5f4,secondary:#4030e8" style="width:30px;height:30px">
+            </lord-icon>
+        </button>
+
+        <ul class="nav nav-pills flex-column mt-2">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa fa-house"></i>
+                    <span class="ms-2 menu-text">Inicio</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="asignadorProfesores.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa fa-house"></i>
+                    <span class="ms-2 menu-text">Asignador de profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="importar.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span class="ms-2 menu-text">Importar Archivos</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="generarHorarios.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-regular fa-calendar-days"></i>
+                    <span class="ms-2 menu-text">Generar Horarios</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesProfesores.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Profesores</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="GesMaterias.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="ms-2 menu-text">Gestión Materias</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="index.html" class="nav-link text-white d-flex align-items-center">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span class="ms-2 menu-text">Salir</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent">
+        <div class="container content-with-sidebar">
+            <div class="card">
+                <div class="card mb-4">
+                    <div class="card-header bg-azul-personalizado text-white text-center">
+                        <h5>Asignador Automático de Profesores a Horarios</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                        <i class="fa-solid fa-file-csv fa-4x text-success mb-3"></i>
+                        <p class="text-muted">Sube un archivo CSV con horarios (materias, horas, grupos)</p>
+                    </div>
+
+                    <input type="file" id="archivoCSV" accept=".csv" class="form-control mb-3 border-primary"
+                        style="border-color:#4da3ff !important;">
+
+                    <button id="btnProcesar" class="btn w-100 mb-3 text-white" style="background-color:#4da3ff;">
+                        <i class="fa-solid fa-play"></i> Iniciar
+                    </button>
+
+                    <div class="progress d-none" id="barraCarga" style="height: 12px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                            style="width: 100%; background-color:#4da3ff;"></div>
+                    </div>
+
+                    <div id="mensaje" class="mt-3"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-archivos">
+                    <h5><b>Archivos generados</b></h5>
+                    <p style="margin-top:-4px;">Listar archivos disponibles para descarga.</p>
+
+                    <button id="btnListarArchivos" class="btn btn-primary mb-3">
+                        Mostrar archivos
+                    </button>
+
+                    <div id="spinner" style="display:none;" class="spinner"></div>
+
+                    <div id="lista-archivos"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de mensaje -->
+    <div id="modalMensaje" class="modal-overlay d-none">
+        <div class="modal-box">
+            <div id="modalContenido"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+    <script src="Navbar/estadoSideBar.js"></script>
+    <script src="js/asignarNombres.js"></script>
+    <script src="js/listarDescargarArchivos.js"></script>
+</body>
+
+</html>
