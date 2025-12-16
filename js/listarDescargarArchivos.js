@@ -30,7 +30,7 @@ document.getElementById("btnListarArchivos").addEventListener("click", async () 
         document.querySelectorAll(".download-btn").forEach((btn) => {
             btn.addEventListener("click", async () => {
                 const filename = btn.dataset.nombre;
-                const url = `http://74.208.77.56:5486/descargar/${encodeURIComponent(filename)}`;
+                const url = `https://cabadath.duckdns.org/api/coloca-prof/descargar/${encodeURIComponent(filename)}`;
 
                 btn.innerHTML = "Descargando...";
 
