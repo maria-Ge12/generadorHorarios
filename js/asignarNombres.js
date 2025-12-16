@@ -33,7 +33,7 @@ document.getElementById("btnProcesar").addEventListener("click", async () => {
     formData.append("archivo_csv", archivo);
 
     try {
-        const response = await fetch("http://74.208.77.56:5486/asignar", {
+        const response = await fetch("https://cabadath.duckdns.org/api/coloca-prof/asignar", {
             method: "POST",
             body: formData
         });
