@@ -6,7 +6,7 @@ document.getElementById("btnListarArchivos").addEventListener("click", async () 
     spinner.style.display = "block";
 
     try {
-        const response = await fetch("http://74.208.77.56:5486/archivos");
+        const response = await fetch("https://cabadath.duckdns.org/api/coloca-prof/archivos");
         if (!response.ok) throw new Error("Error al obtener archivos");
 
         const data = await response.json();
